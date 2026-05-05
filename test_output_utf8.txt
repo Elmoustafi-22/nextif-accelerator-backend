@@ -1,0 +1,77 @@
+﻿node.exe : npm verbose cli C:\Program Files\nodejs\node.exe 
+C:\Users\USER\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+At C:\Users\USER\AppData\Roaming\npm\npm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/npm/bin/npm-cli.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm verbose cli...\bin\npm-cli.js:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm info using npm@11.5.1
+npm info using node@v24.12.0
+npm verbose title npm test src/modules/task/__tests__/submission.test.ts
+npm verbose argv "test" "src/modules/task/__tests__/submission.test.ts" "--loglevel" "verbose"
+npm verbose logfile logs-max:10 dir:C:\Users\USER\AppData\Local\npm-cache\_logs\2026-01-05T07_18_46_855Z-
+npm verbose logfile C:\Users\USER\AppData\Local\npm-cache\_logs\2026-01-05T07_18_46_855Z-debug-0.log
+
+> backend@1.0.0 test
+> jest src/modules/task/__tests__/submission.test.ts
+
+  console.log
+    DEBUG: Submission ID: submission123
+
+      at verifySubmission (src/modules/task/task.controller.ts:168:11)
+
+  console.log
+    DEBUG: Submission found: submission123
+
+      at verifySubmission (src/modules/task/task.controller.ts:173:11)
+
+  console.log
+    DEBUG: Submission ID: submission123
+
+      at verifySubmission (src/modules/task/task.controller.ts:168:11)
+
+  console.log
+    DEBUG: Submission found: submission123
+
+      at verifySubmission (src/modules/task/task.controller.ts:173:11)
+
+FAIL src/modules/task/__tests__/submission.test.ts
+  Task Controller - verifySubmission
+    ├ù should update submission status and add feedback (127 ms)
+    ΓêÜ should return 400 for invalid status (3 ms)
+    ΓêÜ should handle REDO status and set individualDueDate (7 ms)
+
+  ΓùÅ Task Controller - verifySubmission ΓÇ║ should update submission status and add feedback
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"body": StringContaining "Great job!", "recipientId": "ambassador123", "referenceId": 
+"task123", "type": "MESSAGE"}
+    Received: {"body": "Your submission has been COMPLETED. Remark: \"Great job!\"", "read": false, "recipientId": 
+"ambassador123", "recipientRole": "AMBASSADOR", "title": "Submission Update: Test Task", "type": "MESSAGE"}
+
+    Number of calls: 1
+
+    [0m [90m 81 |[39m
+     [90m 82 |[39m     [90m// Verify notification creation[39m
+    [31m[1m>[22m[39m[90m 83 |[39m     
+expect([33mNotification[39m[33m.[39mcreate)[33m.[39mtoHaveBeenCalledWith(
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 84 |[39m       expect[33m.[39mobjectContaining({
+     [90m 85 |[39m         recipientId[33m:[39m [32m"ambassador123"[39m[33m,[39m
+     [90m 86 |[39m         type[33m:[39m [32m"MESSAGE"[39m[33m,[39m[0m
+
+      at Object.<anonymous> (src/modules/task/__tests__/submission.test.ts:83:33)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 2 passed, 3 total
+Snapshots:   0 total
+Time:        4.697 s
+Ran all test suites matching src/modules/task/__tests__/submission.test.ts.
+npm verbose cwd C:\Users\USER\Desktop\NextIF ambassador\nextif-ambassador-platform\nextif-ambassadors-backend
+npm verbose os Windows_NT 10.0.19045
+npm verbose node v24.12.0
+npm verbose npm  v11.5.1
+npm verbose exit 1
+npm verbose code 1
