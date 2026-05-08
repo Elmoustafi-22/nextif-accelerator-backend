@@ -1,19 +1,10 @@
 import { env } from "../config/env";
-import nodemailer from "nodemailer";
 
 export class EmailService {
-  private static transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_PORT === 465, // true for 465, false for other ports
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS,
-    },
-  });
+  private static readonly BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
   /**
-   * Internal helper to send email via SMTP using Nodemailer
+   * Internal helper to send email via Brevo HTTP API
    */
   private static async sendViaApi(options: {
     to: string;
@@ -21,20 +12,48 @@ export class EmailService {
     html: string;
     senderName?: string;
   }) {
-    const mailOptions = {
-      from: `"${options.senderName || "NextIF"}" <${env.FROM_EMAIL}>`,
-      to: options.to,
+    if (!env.SMTP_PASS) {
+      console.error(
+        "❌ Email Error: SMTP_PASS (Brevo API Key) is not defined."
+      );
+      throw new Error("Brevo API Key is missing.");
+    }
+
+    const payload = {
+      sender: {
+        name: options.senderName || "NextIF",
+        email: env.FROM_EMAIL,
+      },
+      to: [{ email: options.to }],
       subject: options.subject,
-      html: options.html,
+      htmlContent: options.html,
     };
 
     try {
-      console.log(`Attempting to send email to ${options.to} via SMTP...`);
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log("Email sent successfully:", info.messageId);
-      return info;
+      console.log(`Attempting to send email to ${options.to} via Brevo API...`);
+
+      const response = await fetch(this.BREVO_API_URL, {
+        method: "POST",
+        headers: {
+          "api-key": env.SMTP_PASS,
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          `Brevo API Error: ${response.status} - ${JSON.stringify(data)}`
+        );
+      }
+
+      console.log("Email sent successfully via Brevo API:", data);
+      return data;
     } catch (error) {
-      console.error("Failed to send email via SMTP:", error);
+      console.error("Failed to send email via Brevo API:", error);
       throw error;
     }
   }
@@ -47,7 +66,7 @@ export class EmailService {
     firstName: string,
     lastName: string
   ) {
-    const loginUrl = env.ADMIN_FRONTEND_URL; // Using the same base URL, usually /admin is the path
+    const loginUrl = env.ADMIN_FRONTEND_URL;
 
     const html = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
