@@ -45,39 +45,50 @@ export const markAllAsRead = async (req: Request, res: Response) => {
  */
 import { NotificationService } from "./notification.service";
 import Ambassador from "../ambassador/ambassador.model";
+import { EmailService } from "../../utils/email.service";
 
 export const createAnnouncement = async (req: Request, res: Response) => {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-    const { title, body } = req.body;
+    const { title, body, link } = req.body;
 
     if (!title || !body) {
         return res.status(400).json({ message: "Title and body are required" });
     }
 
     try {
-        // Fetch all active ambassadors
-        const ambassadors = await Ambassador.find({ accountStatus: "ACTIVE" }, "_id");
-        const ambassadorIds = ambassadors.map(a => a._id);
+        // Fetch all active ambassadors (fellows)
+        const fellows = await Ambassador.find({ accountStatus: "ACTIVE" }, "_id email firstName");
+        const fellowIds = fellows.map(f => f._id);
 
-        if (ambassadorIds.length === 0) {
-            return res.status(400).json({ message: "No active ambassadors to notify" });
+        if (fellowIds.length === 0) {
+            return res.status(400).json({ message: "No active fellows to notify" });
         }
 
-        // Broadcast announcement
+        // Broadcast in-app announcement
         await NotificationService.broadcast(
-            ambassadorIds,
+            fellowIds,
             "AMBASSADOR",
             "ANNOUNCEMENT",
             title,
-            body
+            body,
+            link
+        );
+
+        // Asynchronously send emails to all fellows
+        Promise.all(
+          fellows.map(f => 
+            EmailService.sendBroadcastEmail(f.email, f.firstName, title, body, link)
+            .catch(err => console.error(`Failed to send broadcast email to ${f.email}:`, err))
+          )
         );
 
         res.status(201).json({ 
             message: "Announcement broadcasted successfully",
-            recipientCount: ambassadorIds.length
+            recipientCount: fellowIds.length
         });
     } catch (error) {
+        console.error("Broadcast Error:", error);
         res.status(500).json({ message: "Error broadcasting announcement", error });
     }
 };

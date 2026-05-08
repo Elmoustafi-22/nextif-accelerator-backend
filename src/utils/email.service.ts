@@ -1,4 +1,5 @@
 import { env } from "../config/env";
+import { generateGoogleCalendarLink } from "./calendar.util";
 
 export class EmailService {
   private static readonly BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
@@ -207,42 +208,103 @@ export class EmailService {
   }
 
   /**
-   * Send Task Redo Email
+   * Send Task Redo Email - High Fidelity
    */
   static async sendTaskRedoEmail(
     to: string,
     firstName: string,
     taskTitle: string,
-    remark: string,
-    newDueDate: Date
+    remark: string
   ) {
     const html = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #dc2626;">Redo Requested: ${taskTitle}</h2>
-          <p>Hello ${firstName},</p>
-          <p>The admin has reviewed your submission for <strong>${taskTitle}</strong> and requested some changes.</p>
-          
-          <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fee2e2;">
-            <p style="margin: 0; font-weight: bold; color: #991b1b;">Admin Remark:</p>
-            <p style="margin: 10px 0; color: #b91c1c;">"${remark}"</p>
-            <p style="margin: 10px 0 0 0; font-weight: bold; color: #991b1b;">New Due Date:</p>
-            <p style="margin: 5px 0 0 0; color: #b91c1c;">${newDueDate.toLocaleDateString()} ${newDueDate.toLocaleTimeString()}</p>
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+          <div style="background-color: #fef2f2; padding: 40px 20px; text-align: center; color: #991b1b; border-bottom: 4px solid #fecaca;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Action Required: Task Revision</h1>
+            <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">Polishing your journey to excellence</p>
           </div>
-          
-          <p>Please address the feedback and resubmit the task by the new deadline.</p>
-          
-          <p>Best regards,<br/>The NextIF Team</p>
+
+          <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+            <h2 style="color: #991b1b; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <p style="font-size: 16px;">The admin team has reviewed your submission for <strong>${taskTitle}</strong>. We appreciate your effort, but we believe a few refinements will help this work truly shine.</p>
+
+            <div style="background: #fff1f2; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #ffe4e6;">
+              <p style="margin: 0; font-weight: 800; text-transform: uppercase; font-size: 12px; color: #be123c; letter-spacing: 1px;">Admin Feedback</p>
+              <p style="margin: 10px 0; color: #9f1239; font-size: 16px; font-style: italic;">"${remark}"</p>
+            </div>
+
+            <p>Please log in to your dashboard to address this feedback and resubmit your task. We look forward to seeing your updated work!</p>
+            
+            <div style="text-align: center; margin-top: 35px;">
+              <a href="${env.FRONTEND_URL}/tasks" style="background-color: #dc2626; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Revise & Resubmit</a>
+            </div>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+            <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+          </div>
         </div>
       `;
 
     try {
       await this.sendViaApi({
         to,
-        subject: `Action Required: Redo for ${taskTitle}`,
+        subject: `Revision Requested: ${taskTitle}`,
         html,
       });
     } catch (error) {
       console.error("Failed to send task redo email:", error);
+    }
+  }
+
+  /**
+   * Send Task Success Email - High Fidelity
+   */
+  static async sendTaskSuccessEmail(
+    to: string,
+    firstName: string,
+    taskTitle: string,
+    points: number
+  ) {
+    const html = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 20px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 26px; font-weight: 800;">Task Verified Successfully!</h1>
+            <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">Excellence recognized and rewarded</p>
+          </div>
+
+          <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+            <h2 style="color: #059669; margin-top: 0;">Great Job, ${firstName}!</h2>
+            
+            <p style="font-size: 16px;">Your submission for <strong>${taskTitle}</strong> has been reviewed and officially verified by the admin team.</p>
+
+            <div style="background: #ecfdf5; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #d1fae5; text-align: center;">
+              <p style="margin: 0; font-weight: 800; text-transform: uppercase; font-size: 12px; color: #065f46; letter-spacing: 1px;">Reward Earned</p>
+              <h1 style="margin: 10px 0; color: #059669; font-size: 48px;">+${points} XP</h1>
+              <p style="margin: 0; color: #065f46; font-size: 14px;">Points have been added to your global rank.</p>
+            </div>
+
+            <p>Keep up the fantastic work. Every verified task brings you one step closer to becoming a leader in ethical finance.</p>
+            
+            <div style="text-align: center; margin-top: 35px;">
+              <a href="${env.FRONTEND_URL}/dashboard" style="background-color: #10b981; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View My Progress</a>
+            </div>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+            <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+          </div>
+        </div>
+      `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `Success! Task Verified: ${taskTitle} (+${points} Points)`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send task success email:", error);
     }
   }
 
@@ -281,8 +343,9 @@ export class EmailService {
 
             <p>This is your opportunity to learn directly from founders, innovators, and experts as we explore <strong>Ethical Innovation</strong> and <strong>Shariah-aligned excellence</strong>.</p>
             
-            <div style="text-align: center; margin-top: 35px;">
-              <a href="${event.location}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Secure Your Seat Now</a>
+            <div style="text-align: center; margin-top: 35px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+              <a href="${event.location}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; width: 200px;">Secure Your Seat Now</a>
+              <a href="${generateGoogleCalendarLink(event.title, event.date, event.explanation || 'NextIF Mentorship Session', event.location)}" style="background-color: #ffffff; color: #4f46e5; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 1px solid #4f46e5; width: 200px; font-size: 13px;">🗓️ Add to Google Calendar</a>
             </div>
 
             <p style="margin-top: 30px; font-size: 14px; color: #64748b; font-style: italic;">"Being part of the NextIF experience means building the future of Halal Entrepreneurship across the globe."</p>
@@ -414,5 +477,48 @@ export class EmailService {
       subject: `[Admin] New Fellow Onboarded: ${fellow.firstName} ${fellow.lastName}`,
       html,
     });
+  }
+
+  static async sendBroadcastEmail(
+    to: string,
+    firstName: string,
+    title: string,
+    body: string,
+    link?: string
+  ) {
+    const html = `
+      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #eef2f6; box-shadow: 0 4px 24px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 40px 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Global Alert</h1>
+          <p style="color: #94a3b8; margin: 10px 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; tracking: 1px;">Program Update • NextIF Accelerator</p>
+        </div>
+        <div style="padding: 40px 30px;">
+          <p style="font-size: 16px; color: #475569; margin: 0 0 20px;">Assalamu Alaikum, <strong>${firstName}</strong>,</p>
+          <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
+            <h2 style="font-size: 18px; color: #1e293b; margin: 0 0 12px; font-weight: 700;">${title}</h2>
+            <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">${body}</p>
+          </div>
+          ${
+            link
+              ? `
+            <div style="text-align: center; margin: 35px 0;">
+              <a href="${link}" style="background-color: #3b82f6; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);">Access Link / Join Meeting</a>
+            </div>
+          `
+              : ""
+          }
+          <div style="border-top: 1px solid #f1f5f9; padding-top: 25px; margin-top: 25px;">
+            <p style="font-size: 14px; color: #64748b; margin: 0; line-height: 1.6;">
+              Please log in to your dashboard to view more details or interact with this announcement.
+            </p>
+          </div>
+        </div>
+        <div style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #f1f5f9;">
+          <p style="font-size: 12px; color: #94a3b8; margin: 0;">&copy; 2026 NextIF Accelerator. Nurturing the next generation of ethical finance leaders.</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendViaApi({ to, subject: title, html });
   }
 }

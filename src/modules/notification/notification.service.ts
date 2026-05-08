@@ -12,6 +12,7 @@ export class NotificationService {
         type: "MESSAGE" | "ANNOUNCEMENT",
         title: string,
         body: string,
+        link?: string,
         referenceId?: Types.ObjectId | string
     ) {
         return await Notification.create({
@@ -20,7 +21,8 @@ export class NotificationService {
             type,
             title,
             body,
-            referenceId: referenceId || undefined, // explicit undefined might still trigger exactOptional depending on TS version, but let's try strict object construction
+            link,
+            referenceId: referenceId || undefined,
             read: false
         } as any);
     }
@@ -34,6 +36,7 @@ export class NotificationService {
         type: "MESSAGE" | "ANNOUNCEMENT",
         title: string,
         body: string,
+        link?: string,
         referenceId?: Types.ObjectId | string
     ) {
         const notifications = recipientIds.map(id => ({
@@ -42,6 +45,7 @@ export class NotificationService {
             type,
             title,
             body,
+            link,
             referenceId,
             read: false
         }));

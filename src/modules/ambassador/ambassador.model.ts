@@ -20,6 +20,7 @@ export interface IAmbassador {
     linkedin?: string | undefined;
     facebook?: string | undefined;
   };
+  points: number;
   createdAt: Date;
 }
 
@@ -54,6 +55,7 @@ const ambassadorSchema = new Schema<IAmbassador>(
       linkedin: String,
       facebook: String,
     },
+    points: { type: Number, default: 0 },
   },
   {
     timestamps: true,

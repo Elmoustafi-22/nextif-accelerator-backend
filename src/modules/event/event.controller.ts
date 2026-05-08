@@ -36,6 +36,7 @@ export const createEvent = async (req: Request, res: Response) => {
       `A new event "${title}" has been scheduled for ${new Date(
         date
       ).toLocaleDateString()}.`,
+      location,
       event._id
     );
 
@@ -99,6 +100,7 @@ export const updateEvent = async (req: Request, res: Response) => {
             "ANNOUNCEMENT",
             `Recording Available: ${event.title}`,
             `The recording for "${event.title}" is now available.`,
+            event.recordingLink,
             event._id
         );
 

@@ -147,7 +147,7 @@ export const getSubmissions = async (req: Request, res: Response) => {
  */
 
 export const verifySubmission = async (req: Request, res: Response) => {
-  const { status, feedback, newDueDate } = req.body; // "COMPLETED", "REJECTED", or "REDO"
+  const { status, feedback } = req.body; // "COMPLETED", "REJECTED", or "REDO"
   const { id } = req.params; // Submission ID
 
   if (!["COMPLETED", "REJECTED", "REDO"].includes(status)) {
@@ -161,13 +161,12 @@ export const verifySubmission = async (req: Request, res: Response) => {
     {
       status,
       adminFeedback: feedback,
-      individualDueDate: newDueDate ? new Date(newDueDate) : undefined,
       reviewedAt: new Date(),
       reviewedBy: req.user?.id,
     },
     { new: true }
   )
-    .populate("taskId", "title")
+    .populate("taskId", "title rewardPoints")
     .populate("ambassadorId", "firstName lastName email university")
     .populate("reviewedBy", "firstName lastName");
 
@@ -177,30 +176,42 @@ export const verifySubmission = async (req: Request, res: Response) => {
 
   // Notify Ambassador
   try {
-    const taskTitle = (submission.taskId as any).title;
+    const task = submission.taskId as any;
+    const taskTitle = task.title;
+    const points = task.rewardPoints || 0;
+    const ambassador = submission.ambassadorId as any;
+
     await Notification.create({
-      recipientId:
-        (submission.ambassadorId as any)._id || submission.ambassadorId,
+      recipientId: ambassador._id,
       recipientRole: "AMBASSADOR",
       type: "MESSAGE",
-      title: `Submission Update: ${taskTitle}`,
-      body: `Your submission has been ${status}. ${
-        feedback ? `Remark: "${feedback}"` : ""
-      }`,
+      title: status === "COMPLETED" ? `Task Verified: ${taskTitle}` : `Revision Needed: ${taskTitle}`,
+      body: status === "COMPLETED" 
+        ? `Excellent work! Your submission for "${taskTitle}" has been verified. You earned ${points} points.`
+        : `Your submission for "${taskTitle}" requires revision. Feedback: "${feedback}"`,
       read: false,
-      referenceId: (submission.taskId as any)._id,
+      referenceId: task._id,
     });
 
-    // Send Redo Email if status is REDO
+    // Send Status Emails
     if (status === "REDO") {
-      const ambassador = submission.ambassadorId as any;
-      const taskTitle = (submission.taskId as any).title;
       await EmailService.sendTaskRedoEmail(
         ambassador.email,
         ambassador.firstName,
         taskTitle,
-        feedback || "Please redo the task as per instructions.",
-        new Date(newDueDate)
+        feedback || "Please review the instructions and resubmit your work."
+      );
+    } else if (status === "COMPLETED") {
+      // Award points to ambassador
+      await Ambassador.findByIdAndUpdate(ambassador._id, {
+        $inc: { points: points },
+      });
+
+      await EmailService.sendTaskSuccessEmail(
+        ambassador.email,
+        ambassador.firstName,
+        taskTitle,
+        points
       );
     }
   } catch (error) {
@@ -326,8 +337,8 @@ export const submitTask = async (req: Request, res: Response) => {
     return res.status(400).json({ message: "Submission deadline has passed" });
   }
 
-  // Determine Status: Check verification type
-  const status = task.verificationType === "AUTO" ? "COMPLETED" : "SUBMITTED";
+  // Determine Status: All tasks now require manual admin verification
+  const status = "SUBMITTED";
 
   console.log(
     `Submitting task ${id} for user ${req.user.id}, setting status to ${status}`

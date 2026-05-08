@@ -6,6 +6,7 @@ export interface INotification {
     type: "MESSAGE" | "ANNOUNCEMENT";
     title: string;
     body: string;
+    link?: string;
     referenceId?: Types.ObjectId;
     read: boolean;
 }
@@ -16,6 +17,7 @@ const notificationSchema = new Schema<INotification>({
     type: { type: String, enum: ["MESSAGE", "ANNOUNCEMENT"], required: true },
     title: { type: String, required: true },
     body: { type: String, required: true },
+    link: { type: String },
     referenceId: { type: Schema.Types.ObjectId },
     read: { type: Boolean, default: false },
 }, {
