@@ -5,6 +5,7 @@ import Ambassador from "../ambassador/ambassador.model";
 import { Types } from "mongoose";
 import { NotificationService } from "../notification/notification.service";
 import { EmailService } from "../../utils/email.service";
+import Admin from "../admin/admin.model";
 
 // --- Event Management (Admin) ---
 
@@ -48,6 +49,24 @@ export const createEvent = async (req: Request, res: Response) => {
         console.error(`Failed to send email to ${fellow.email}:`, err)
       );
     });
+
+    // Notify all admins about the new event
+    try {
+      const admins = await Admin.find({ accountStatus: "ACTIVE" });
+      const creator = await Admin.findById(req.user!.id);
+      const creatorName = creator ? `${creator.firstName} ${creator.lastName}` : "An Admin";
+
+      admins.forEach((admin) => {
+        EmailService.sendAdminEventNotificationEmail(
+          admin.email,
+          admin.firstName,
+          event,
+          creatorName
+        ).catch((err) => console.error(`Failed to notify admin ${admin.email}:`, err));
+      });
+    } catch (adminErr) {
+      console.error("Failed to fetch admins for notification:", adminErr);
+    }
 
     res.status(201).json(event);
   } catch (error) {

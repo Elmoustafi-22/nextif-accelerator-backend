@@ -313,4 +313,78 @@ export class EmailService {
       console.error("Failed to send event update email:", error);
     }
   }
+
+  /**
+   * Notify Admin about a new Event
+   */
+  static async sendAdminEventNotificationEmail(
+    to: string,
+    adminName: string,
+    event: any,
+    creatorName: string
+  ) {
+    const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Admin Alert: New Event Scheduled</h2>
+          <p>Hello ${adminName},</p>
+          <p>This is an internal notification that a new event has been created by <strong>${creatorName}</strong>.</p>
+          
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-weight: bold; color: #1e293b;">Event Details:</p>
+            <ul style="margin: 10px 0; color: #334155;">
+              <li><strong>Title:</strong> ${event.title}</li>
+              <li><strong>Type:</strong> ${event.type}</li>
+              <li><strong>Date:</strong> ${new Date(event.date).toLocaleString()}</li>
+            </ul>
+          </div>
+          
+          <p>All active fellows have been notified via email and system alerts.</p>
+          
+          <p>Best regards,<br/>NextIF System Bot</p>
+        </div>
+      `;
+
+    return this.sendViaApi({
+      to,
+      subject: `[Admin] New Event Created: ${event.title}`,
+      html,
+    });
+  }
+
+  /**
+   * Notify Admin about a new Fellow
+   */
+  static async sendAdminFellowOnboardedEmail(
+    to: string,
+    adminName: string,
+    fellow: any,
+    creatorName: string
+  ) {
+    const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Admin Alert: New Fellow Onboarded</h2>
+          <p>Hello ${adminName},</p>
+          <p>A new fellow has been successfully onboarded by <strong>${creatorName}</strong>.</p>
+          
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-weight: bold; color: #1e293b;">Fellow Details:</p>
+            <ul style="margin: 10px 0; color: #334155;">
+              <li><strong>Name:</strong> ${fellow.firstName} ${fellow.lastName}</li>
+              <li><strong>Email:</strong> ${fellow.email}</li>
+              <li><strong>Institution:</strong> ${fellow.profile.institution}</li>
+            </ul>
+          </div>
+          
+          <p>The fellow has been sent their welcome credentials and portal access.</p>
+          
+          <p>Best regards,<br/>NextIF System Bot</p>
+        </div>
+      `;
+
+    return this.sendViaApi({
+      to,
+      subject: `[Admin] New Fellow Onboarded: ${fellow.firstName} ${fellow.lastName}`,
+      html,
+    });
+  }
 }

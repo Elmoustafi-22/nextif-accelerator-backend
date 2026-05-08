@@ -192,17 +192,30 @@ export const createAmbassador = async (req: Request, res: Response) => {
     role: "AMBASSADOR",
   });
 
-  // Send Welcome Email
-  try {
-    await EmailService.sendFellowWelcomeEmail(
-      ambassador.email,
-      ambassador.firstName,
-      ambassador.lastName
-    );
-  } catch (error) {
-    console.error("Failed to send welcome email:", error);
-    // Continue anyway since ambassador is created
-  }
+    // Send Welcome Email
+    try {
+      await EmailService.sendFellowWelcomeEmail(
+        ambassador.email,
+        ambassador.firstName,
+        ambassador.lastName
+      );
+
+      // Notify all admins about the new fellow
+      const admins = await Admin.find({ accountStatus: "ACTIVE" });
+      const creator = await Admin.findById(req.user!.id);
+      const creatorName = creator ? `${creator.firstName} ${creator.lastName}` : "An Admin";
+
+      admins.forEach((admin) => {
+        EmailService.sendAdminFellowOnboardedEmail(
+          admin.email,
+          admin.firstName,
+          ambassador,
+          creatorName
+        ).catch((err) => console.error(`Failed to notify admin ${admin.email}:`, err));
+      });
+    } catch (error) {
+      console.error("Failed to send welcome/admin notification email:", error);
+    }
 
   res.status(201).json(ambassador);
 };
@@ -471,6 +484,26 @@ export const bulkOnboardAmbassadors = async (req: Request, res: Response) => {
       }
 
       results.push(newAmbassador);
+    }
+
+    // Notify admins about the bulk onboarding completion
+    if (results.length > 0) {
+        try {
+            const admins = await Admin.find({ accountStatus: "ACTIVE" });
+            const creator = await Admin.findById(req.user!.id);
+            const creatorName = creator ? `${creator.firstName} ${creator.lastName}` : "An Admin";
+
+            admins.forEach((admin) => {
+                EmailService.sendAdminEventNotificationEmail( // Reusing event alert structure for generic alert
+                    admin.email,
+                    admin.firstName,
+                    { title: `Bulk Onboarding Complete (${results.length} Fellows)`, type: "SYSTEM", date: new Date() },
+                    creatorName
+                ).catch((err) => console.error(`Failed to notify admin ${admin.email}:`, err));
+            });
+        } catch (adminErr) {
+            console.error("Failed to send bulk onboarding admin notification:", adminErr);
+        }
     }
 
     res.json({
