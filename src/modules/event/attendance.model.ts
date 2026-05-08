@@ -4,6 +4,7 @@ export interface IAttendance {
   event: Types.ObjectId;
   ambassador: Types.ObjectId;
   status: "PRESENT" | "ABSENT" | "EXCUSED";
+  marks: number;
   markedBy: Types.ObjectId;
   markedAt: Date;
   createdAt: Date;
@@ -23,6 +24,7 @@ const attendanceSchema = new Schema<IAttendance>(
       enum: ["PRESENT", "ABSENT", "EXCUSED"],
       required: true,
     },
+    marks: { type: Number, default: 0 },
     markedBy: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
     markedAt: { type: Date, default: Date.now },
   },

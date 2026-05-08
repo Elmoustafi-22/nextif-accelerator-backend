@@ -232,4 +232,90 @@ export class EmailService {
       console.error("Failed to send task redo email:", error);
     }
   }
+
+  /**
+   * Send Event Notification Email
+   */
+  static async sendEventNotificationEmail(
+    to: string,
+    firstName: string,
+    event: any
+  ) {
+    const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #2563eb;">New Event Scheduled: ${event.title}</h2>
+          <p>Hello ${firstName},</p>
+          <p>A new event has been scheduled on the <strong>NextIF Ambassador Portal</strong>.</p>
+          
+          <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-weight: bold;">Event Details:</p>
+            <ul style="margin: 10px 0;">
+              <li><strong>Title:</strong> ${event.title}</li>
+              <li><strong>Speaker:</strong> ${event.speaker || "TBA"}</li>
+              <li><strong>Date:</strong> ${new Date(
+                event.date
+              ).toLocaleDateString()} ${new Date(
+      event.date
+    ).toLocaleTimeString()}</li>
+              <li><strong>Type:</strong> ${event.type}</li>
+              <li><strong>Link:</strong> <a href="${event.location}">${
+      event.location
+    }</a></li>
+            </ul>
+            <p style="margin-top: 10px;"><strong>Description:</strong></p>
+            <p>${event.description}</p>
+          </div>
+          
+          <p>Please log in to your dashboard for more details.</p>
+          
+          <p>Best regards,<br/>The NextIF Team</p>
+        </div>
+      `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `New Event: ${event.title}`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send event notification email:", error);
+    }
+  }
+
+  /**
+   * Send Event Update (Recording) Email
+   */
+  static async sendEventUpdateEmail(
+    to: string,
+    firstName: string,
+    event: any
+  ) {
+    const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #2563eb;">Recording Available: ${event.title}</h2>
+          <p>Hello ${firstName},</p>
+          <p>The recording for the event <strong>${event.title}</strong> is now available.</p>
+          
+          <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #dcfce7;">
+            <p style="margin: 0; font-weight: bold; color: #166534;">Watch Recording:</p>
+            <p style="margin: 10px 0;"><a href="${event.recordingLink}" style="color: #166534; font-weight: bold;">${event.recordingLink}</a></p>
+          </div>
+          
+          <p>You can also access this link from your dashboard under the Events section.</p>
+          
+          <p>Best regards,<br/>The NextIF Team</p>
+        </div>
+      `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `Recording Available: ${event.title}`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send event update email:", error);
+    }
+  }
 }

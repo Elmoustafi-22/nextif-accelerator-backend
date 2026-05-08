@@ -3,12 +3,14 @@ import Event from "./event.model";
 import Attendance from "./attendance.model";
 import Ambassador from "../ambassador/ambassador.model";
 import { Types } from "mongoose";
+import { NotificationService } from "../notification/notification.service";
+import { EmailService } from "../../utils/email.service";
 
 // --- Event Management (Admin) ---
 
 export const createEvent = async (req: Request, res: Response) => {
   try {
-    const { title, description, date, location, type } = req.body;
+    const { title, description, date, location, type, speaker } = req.body;
 
     const event = await Event.create({
       title,
@@ -16,7 +18,35 @@ export const createEvent = async (req: Request, res: Response) => {
       date,
       location,
       type,
+      speaker,
       createdBy: req.user!.id,
+    });
+
+    // Notify all ambassadors
+    const ambassadors = await Ambassador.find({ accountStatus: "ACTIVE" });
+    const ambassadorIds = ambassadors.map((a) => a._id);
+
+    // System Notification
+    await NotificationService.broadcast(
+      ambassadorIds,
+      "AMBASSADOR",
+      "ANNOUNCEMENT",
+      `New Event: ${title}`,
+      `A new event "${title}" has been scheduled for ${new Date(
+        date
+      ).toLocaleDateString()}.`,
+      event._id
+    );
+
+    // Email Notification - Fire and forget to avoid blocking the response
+    ambassadors.forEach((ambassador) => {
+      EmailService.sendEventNotificationEmail(
+        ambassador.email,
+        ambassador.firstName,
+        event
+      ).catch((err) =>
+        console.error(`Failed to send email to ${ambassador.email}:`, err)
+      );
     });
 
     res.status(201).json(event);
@@ -30,10 +60,39 @@ export const updateEvent = async (req: Request, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
 
+    const oldEvent = await Event.findById(id);
     const event = await Event.findByIdAndUpdate(id, updates, { new: true });
 
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if recordingLink was added/updated
+    if (updates.recordingLink && updates.recordingLink !== oldEvent?.recordingLink) {
+        // Notify all ambassadors
+        const ambassadors = await Ambassador.find({ accountStatus: "ACTIVE" });
+        const ambassadorIds = ambassadors.map((a) => a._id);
+
+        // System Notification
+        await NotificationService.broadcast(
+            ambassadorIds,
+            "AMBASSADOR",
+            "ANNOUNCEMENT",
+            `Recording Available: ${event.title}`,
+            `The recording for "${event.title}" is now available.`,
+            event._id
+        );
+
+        // Email Notification - Fire and forget
+        ambassadors.forEach((ambassador) => {
+            EmailService.sendEventUpdateEmail(
+                ambassador.email,
+                ambassador.firstName,
+                event
+            ).catch((err) =>
+                console.error(`Failed to send update email to ${ambassador.email}:`, err)
+            );
+        });
     }
 
     res.json(event);
@@ -101,7 +160,7 @@ export const getEventById = async (req: Request, res: Response) => {
 export const markAttendance = async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
-    const { ambassadorId, status } = req.body; // status: "PRESENT", "ABSENT", etc.
+    const { ambassadorId, status, marks } = req.body; // status: "PRESENT", "ABSENT", etc.
 
     const attendance = await Attendance.findOneAndUpdate(
       {
@@ -110,6 +169,7 @@ export const markAttendance = async (req: Request, res: Response) => {
       },
       {
         status,
+        marks: marks || 0,
         markedBy: new Types.ObjectId(req.user!.id),
         markedAt: new Date(),
       },
@@ -125,7 +185,7 @@ export const markAttendance = async (req: Request, res: Response) => {
 export const markBulkAttendance = async (req: Request, res: Response) => {
   try {
     const { eventId } = req.params;
-    const { items } = req.body; // Array of { ambassadorId, status }
+    const { items } = req.body; // Array of { ambassadorId, status, marks }
 
     if (!Array.isArray(items)) {
       return res.status(400).json({ message: "Items must be an array" });
@@ -140,6 +200,7 @@ export const markBulkAttendance = async (req: Request, res: Response) => {
         update: {
           $set: {
             status: item.status,
+            marks: item.marks || 0,
             markedBy: new Types.ObjectId(req.user!.id),
             markedAt: new Date(),
           },
@@ -187,6 +248,7 @@ export const getEventAttendance = async (req: Request, res: Response) => {
       email: ambassador.email,
       attendanceStatus:
         attendanceMap.get(ambassador._id.toString())?.status || "NOT_MARKED",
+      marks: attendanceMap.get(ambassador._id.toString())?.marks || 0,
       attendanceRecord: attendanceMap.get(ambassador._id.toString()) || null,
     }));
 

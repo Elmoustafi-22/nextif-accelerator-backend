@@ -5,7 +5,9 @@ export interface IEvent {
   description: string;
   date: Date;
   location?: string;
-  type: "WEBINAR" | "MEETING" | "WORKSHOP" | "OTHER";
+  type: "WEBINAR" | "MEETING" | "WORKSHOP" | "SESSION" | "OTHER";
+  speaker?: string;
+  recordingLink?: string;
   createdBy: Types.ObjectId;
   status: "UPCOMING" | "COMPLETED" | "CANCELLED";
   createdAt: Date;
@@ -20,9 +22,11 @@ const eventSchema = new Schema<IEvent>(
     location: { type: String },
     type: {
       type: String,
-      enum: ["WEBINAR", "MEETING", "WORKSHOP", "OTHER"],
+      enum: ["WEBINAR", "MEETING", "WORKSHOP", "SESSION", "OTHER"],
       default: "WEBINAR",
     },
+    speaker: { type: String },
+    recordingLink: { type: String },
     createdBy: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
     status: {
       type: String,
