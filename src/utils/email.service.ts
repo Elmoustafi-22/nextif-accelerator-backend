@@ -1,10 +1,19 @@
 import { env } from "../config/env";
+import nodemailer from "nodemailer";
 
 export class EmailService {
-  private static readonly BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+  private static transporter = nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_PORT === 465, // true for 465, false for other ports
+    auth: {
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+    },
+  });
 
   /**
-   * Internal helper to send email via Brevo HTTP API
+   * Internal helper to send email via SMTP using Nodemailer
    */
   private static async sendViaApi(options: {
     to: string;
@@ -12,53 +21,20 @@ export class EmailService {
     html: string;
     senderName?: string;
   }) {
-    if (!env.SMTP_PASS) {
-      console.error(
-        "❌ Email Error: SMTP_PASS is not defined in environment variables."
-      );
-      throw new Error("Brevo API Key (SMTP_PASS) is missing.");
-    }
-
-    const payload = {
-      sender: {
-        name: options.senderName || "NextIF",
-        email: env.FROM_EMAIL,
-      },
-      to: [{ email: options.to }],
+    const mailOptions = {
+      from: `"${options.senderName || "NextIF"}" <${env.FROM_EMAIL}>`,
+      to: options.to,
       subject: options.subject,
-      htmlContent: options.html,
+      html: options.html,
     };
 
     try {
-      // Diagnostic log (masked)
-      console.log(
-        `Attempting to send email via Brevo API. Key length: ${
-          env.SMTP_PASS.length
-        }, Starts with: ${env.SMTP_PASS.substring(0, 5)}...`
-      );
-
-      const response = await fetch(this.BREVO_API_URL, {
-        method: "POST",
-        headers: {
-          "api-key": env.SMTP_PASS,
-          "content-type": "application/json",
-          accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          `Brevo API Error: ${response.status} - ${JSON.stringify(data)}`
-        );
-      }
-
-      console.log("Email sent successfully via Brevo API:", data);
-      return data;
+      console.log(`Attempting to send email to ${options.to} via SMTP...`);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log("Email sent successfully:", info.messageId);
+      return info;
     } catch (error) {
-      console.error("Failed to send email via Brevo API:", error);
+      console.error("Failed to send email via SMTP:", error);
       throw error;
     }
   }
@@ -76,9 +52,9 @@ export class EmailService {
     const html = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2563eb;">Welcome, ${firstName}!</h2>
-          <p>You have been added as an <strong>Administrator</strong> to the <strong>NextIF Ambassador Portal</strong>.</p>
+          <p>You have been added as an <strong>Administrator</strong> to the <strong>NextIF Fellow Portal</strong>.</p>
           
-          <p>Please log in to the admin dashboard to manage ambassadors, tasks, and system settings.</p>
+          <p>Please log in to the admin dashboard to manage fellows, tasks, and system settings.</p>
           
           <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <p style="margin: 0; font-weight: bold;">Login Instructions:</p>
@@ -100,15 +76,15 @@ export class EmailService {
 
     return this.sendViaApi({
       to,
-      subject: "Admin Access Granted: NextIF Ambassador Portal",
+      subject: "Admin Access Granted: NextIF Fellow Portal",
       html,
     });
   }
 
   /**
-   * Send Welcome Email to New Ambassador
+   * Send Welcome Email to New Fellow
    */
-  static async sendAmbassadorWelcomeEmail(
+  static async sendFellowWelcomeEmail(
     to: string,
     firstName: string,
     lastName: string
@@ -118,9 +94,9 @@ export class EmailService {
     const html = `
   <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
     
-    <p>Dear NextIF Ambassador,</p>
+    <p>Dear NextIF Fellow,</p>
 
-    <p>Your NextIF Ambassadors Portal is now active. Kindly log in to update your profile, access onboarding resources, and stay updated on upcoming activities.</p>
+    <p>Your NextIF Fellows Portal is now active. Kindly log in to update your profile, access onboarding resources, and stay updated on upcoming activities.</p>
 
     <h3 style="color: #2563eb;">Login Instructions</h3>
 
@@ -149,7 +125,7 @@ export class EmailService {
 
     return this.sendViaApi({
       to,
-      subject: "Welcome to the NextIF Ambassador Portal!",
+      subject: "Welcome to the NextIF Fellow Portal!",
       html,
     });
   }
@@ -166,7 +142,7 @@ export class EmailService {
     const html = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2563eb;">Hello ${firstName},</h2>
-          <p>A new task has been assigned to you on the <strong>NextIF Ambassador Portal</strong>.</p>
+          <p>A new task has been assigned to you on the <strong>NextIF Fellow Portal</strong>.</p>
           
           <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <p style="margin: 0; font-weight: bold;">Task Details:</p>
@@ -245,7 +221,7 @@ export class EmailService {
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2563eb;">New Event Scheduled: ${event.title}</h2>
           <p>Hello ${firstName},</p>
-          <p>A new event has been scheduled on the <strong>NextIF Ambassador Portal</strong>.</p>
+          <p>A new event has been scheduled on the <strong>NextIF Fellow Portal</strong>.</p>
           
           <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <p style="margin: 0; font-weight: bold;">Event Details:</p>

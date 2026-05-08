@@ -16,7 +16,7 @@ export const getProfile = async (req: Request, res: Response) => {
   }
   const ambassador = await Ambassador.findById(req.user.id);
   if (!ambassador) {
-    return res.status(404).json({ message: "Ambassador not found" });
+    return res.status(404).json({ message: "Fellow not found" });
   }
   res.json(ambassador);
 };
@@ -42,7 +42,7 @@ export const updateProfile = async (req: Request, res: Response) => {
   );
 
   if (!ambassador) {
-    return res.status(404).json({ message: "Ambassador not found" });
+    return res.status(404).json({ message: "Fellow not found" });
   }
 
   res.json(ambassador);
@@ -55,7 +55,7 @@ export const changeAmbassadorPassword = async (req: Request, res: Response) => {
 
   const ambassador = await Ambassador.findById(req.user.id).select("+password");
   if (!ambassador) {
-    return res.status(404).json({ message: "Ambassador not found" });
+    return res.status(404).json({ message: "Fellow not found" });
   }
 
   if (!ambassador.password) {
@@ -217,6 +217,6 @@ export const getAmbassadorStats = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error in getAmbassadorStats:", error);
-    res.status(500).json({ message: "Error fetching ambassador stats", error });
+    res.status(500).json({ message: "Error fetching fellow stats", error });
   }
 };

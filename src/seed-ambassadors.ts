@@ -55,7 +55,7 @@ const seedAmbassador = async () => {
 
     // Send Welcome Email
     try {
-      await EmailService.sendAmbassadorWelcomeEmail(
+      await EmailService.sendFellowWelcomeEmail(
         email.toLowerCase(),
         firstName,
         lastName

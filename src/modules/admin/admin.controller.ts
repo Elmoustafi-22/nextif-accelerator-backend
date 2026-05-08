@@ -43,8 +43,8 @@ export const sendAnnouncement = async (req: Request, res: Response) => {
   const { title, body } = req.body;
 
   // Get all Active Ambassadors
-  const ambassadors = await Ambassador.find({ accountStatus: "ACTIVE" });
-  const ambassadorIds = ambassadors.map((a) => a._id);
+  const fellows = await Ambassador.find({ accountStatus: "ACTIVE" });
+  const ambassadorIds = fellows.map((a) => a._id);
 
   await NotificationService.broadcast(
     ambassadorIds,
@@ -55,7 +55,7 @@ export const sendAnnouncement = async (req: Request, res: Response) => {
   );
 
   res.status(201).json({
-    message: `Announcement sent to ${ambassadorIds.length} ambassadors`,
+    message: `Announcement sent to ${ambassadorIds.length} fellows`,
   });
 };
 
@@ -129,7 +129,7 @@ export const getAllAmbassadors = async (req: Request, res: Response) => {
     ];
   }
 
-  const ambassadors = await Ambassador.find(query)
+  const fellows = await Ambassador.find(query)
     .limit(Number(limit))
     .skip((Number(page) - 1) * Number(limit))
     .sort({ createdAt: -1 });
@@ -137,7 +137,7 @@ export const getAllAmbassadors = async (req: Request, res: Response) => {
   const total = await Ambassador.countDocuments(query);
 
   res.json({
-    data: ambassadors,
+    data: fellows,
     meta: {
       total,
       page: Number(page),
@@ -194,7 +194,7 @@ export const createAmbassador = async (req: Request, res: Response) => {
 
   // Send Welcome Email
   try {
-    await EmailService.sendAmbassadorWelcomeEmail(
+    await EmailService.sendFellowWelcomeEmail(
       ambassador.email,
       ambassador.firstName,
       ambassador.lastName
@@ -461,7 +461,7 @@ export const bulkOnboardAmbassadors = async (req: Request, res: Response) => {
 
       // Send Welcome Email
       try {
-        await EmailService.sendAmbassadorWelcomeEmail(
+        await EmailService.sendFellowWelcomeEmail(
           newAmbassador.email,
           newAmbassador.firstName,
           newAmbassador.lastName

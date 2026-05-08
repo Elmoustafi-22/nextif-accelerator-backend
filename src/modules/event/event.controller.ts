@@ -22,13 +22,13 @@ export const createEvent = async (req: Request, res: Response) => {
       createdBy: req.user!.id,
     });
 
-    // Notify all ambassadors
-    const ambassadors = await Ambassador.find({ accountStatus: "ACTIVE" });
-    const ambassadorIds = ambassadors.map((a) => a._id);
+    // Notify all fellows
+    const fellows = await Ambassador.find({ accountStatus: { $ne: "SUSPENDED" } });
+    const fellowIds = fellows.map((f) => f._id);
 
     // System Notification
     await NotificationService.broadcast(
-      ambassadorIds,
+      fellowIds,
       "AMBASSADOR",
       "ANNOUNCEMENT",
       `New Event: ${title}`,
@@ -39,13 +39,13 @@ export const createEvent = async (req: Request, res: Response) => {
     );
 
     // Email Notification - Fire and forget to avoid blocking the response
-    ambassadors.forEach((ambassador) => {
+    fellows.forEach((fellow) => {
       EmailService.sendEventNotificationEmail(
-        ambassador.email,
-        ambassador.firstName,
+        fellow.email,
+        fellow.firstName,
         event
       ).catch((err) =>
-        console.error(`Failed to send email to ${ambassador.email}:`, err)
+        console.error(`Failed to send email to ${fellow.email}:`, err)
       );
     });
 
@@ -69,13 +69,13 @@ export const updateEvent = async (req: Request, res: Response) => {
 
     // Check if recordingLink was added/updated
     if (updates.recordingLink && updates.recordingLink !== oldEvent?.recordingLink) {
-        // Notify all ambassadors
-        const ambassadors = await Ambassador.find({ accountStatus: "ACTIVE" });
-        const ambassadorIds = ambassadors.map((a) => a._id);
+        // Notify all fellows
+        const fellows = await Ambassador.find({ accountStatus: { $ne: "SUSPENDED" } });
+        const fellowIds = fellows.map((f) => f._id);
 
         // System Notification
         await NotificationService.broadcast(
-            ambassadorIds,
+            fellowIds,
             "AMBASSADOR",
             "ANNOUNCEMENT",
             `Recording Available: ${event.title}`,
@@ -84,13 +84,13 @@ export const updateEvent = async (req: Request, res: Response) => {
         );
 
         // Email Notification - Fire and forget
-        ambassadors.forEach((ambassador) => {
+        fellows.forEach((fellow) => {
             EmailService.sendEventUpdateEmail(
-                ambassador.email,
-                ambassador.firstName,
+                fellow.email,
+                fellow.firstName,
                 event
             ).catch((err) =>
-                console.error(`Failed to send update email to ${ambassador.email}:`, err)
+                console.error(`Failed to send update email to ${fellow.email}:`, err)
             );
         });
     }
