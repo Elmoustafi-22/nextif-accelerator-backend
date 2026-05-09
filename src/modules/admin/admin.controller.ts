@@ -144,10 +144,20 @@ export const getAllAmbassadors = async (req: Request, res: Response) => {
   const query: any = {};
   if (status) query.accountStatus = status;
   if (search) {
+    const searchString = String(search);
+    const searchRegex = new RegExp(searchString.split(/\s+/).join(".*"), "i");
     query.$or = [
       { firstName: { $regex: search, $options: "i" } },
       { lastName: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
+      {
+        $expr: {
+          $regexMatch: {
+            input: { $concat: ["$firstName", " ", "$lastName"] },
+            regex: searchRegex,
+          },
+        },
+      },
     ];
   }
 
@@ -163,7 +173,7 @@ export const getAllAmbassadors = async (req: Request, res: Response) => {
     meta: {
       total,
       page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
+      totalPages: Math.ceil(total / Number(limit)),
     },
   });
 };
