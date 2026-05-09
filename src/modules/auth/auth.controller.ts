@@ -18,7 +18,7 @@ export const ambassadorFirstLoginController = async (
   const { email, lastName } = req.body;
 
   const ambassador = await Ambassador.findOne({
-    email: email.toLowerCase(),
+    email: email.trim().toLowerCase(),
   });
 
   if (!ambassador) {
@@ -39,7 +39,7 @@ export const ambassadorFirstLoginController = async (
     });
   }
 
-  if (ambassador.lastName.toLowerCase() !== lastName.toLowerCase()) {
+  if (ambassador.lastName.trim().toLowerCase() !== lastName.trim().toLowerCase()) {
     return res.status(401).json({
       message: "Invalid credentials",
     });
@@ -75,7 +75,7 @@ export const ambassadorLoginController = async (
   const { email, password } = req.body;
 
   const ambassador = await Ambassador.findOne({
-    email: email.toLowerCase(),
+    email: email.trim().toLowerCase(),
   }).select("+password");
 
   if (!ambassador) {
@@ -177,7 +177,7 @@ export const adminLogin = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   const admin = await Admin.findOne({
-    email: email.toLowerCase(),
+    email: email.trim().toLowerCase(),
   }).select("+password");
 
   if (!admin) {
@@ -230,7 +230,7 @@ export const adminFirstLoginController = async (
 ) => {
   const { email, lastName } = req.body;
 
-  const admin = await Admin.findOne({ email: email.toLowerCase() });
+  const admin = await Admin.findOne({ email: email.trim().toLowerCase() });
 
   if (!admin) {
     return res.status(401).json({ message: "Invalid credentials" });
@@ -247,7 +247,7 @@ export const adminFirstLoginController = async (
   }
 
   // Check last name
-  if (admin.lastName.toLowerCase() !== lastName.toLowerCase()) {
+  if (admin.lastName.trim().toLowerCase() !== lastName.trim().toLowerCase()) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
@@ -328,7 +328,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
   >;
 
   const user = await Model.findOne({
-    email: email.toLowerCase(),
+    email: email.trim().toLowerCase(),
   });
 
   if (!user) {
