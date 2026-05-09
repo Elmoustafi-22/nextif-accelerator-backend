@@ -129,16 +129,16 @@ export class EmailService {
 
       <!-- Credentials Card -->
       <div style="background: #f8fafc; padding: 25px; border-radius: 12px; margin: 30px 0; border: 1px solid #e2e8f0;">
-        <h3 style="margin-top: 0; color: #1e293b; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Your Secure Access Details</h3>
+        <h3 style="margin-top: 0; color: #1e293b; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">Your Login Details</h3>
         
-        <ul style="list-style: none; padding: 0; margin: 15px 0; color: #334155;">
-          <li style="margin-bottom: 12px;">🌐 <strong>Portal URL:</strong> <a href="${loginUrl}" style="color: #4f46e5; text-decoration: none; font-weight: 600;">${loginUrl}</a></li>
-          <li style="margin-bottom: 12px;">📧 <strong>Username:</strong> <span style="font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${to}</span></li>
-          <li style="margin-bottom: 12px;">🔑 <strong>Initial Password:</strong> <span style="font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${lastName}</span> <small style="color: #64748b;">(Case-sensitive)</small></li>
-        </ul>
+        <p style="margin: 15px 0 8px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Email</p>
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 15px; color: #0f172a; font-weight: 700; letter-spacing: 0.3px;">${to}</div>
 
-        <p style="margin: 15px 0 0 0; font-size: 13px; color: #64748b; background: #fef9c3; padding: 10px; border-radius: 6px; border: 1px solid #fef08a;">
-          <strong>Action Required:</strong> Click on "First time logging in" and you will be prompted to set a new password immediately.
+        <p style="margin: 20px 0 8px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Last Name (use as initial password)</p>
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 15px; color: #0f172a; font-weight: 700; letter-spacing: 0.3px;">${lastName}</div>
+
+        <p style="margin: 20px 0 0 0; font-size: 13px; color: #64748b; background: #fef9c3; padding: 10px; border-radius: 6px; border: 1px solid #fef08a;">
+          <strong>How to log in:</strong> Go to the portal, click <strong>"First time here?"</strong>, enter your <strong>email</strong> and <strong>last name</strong> exactly as shown above. You will then be prompted to set a new password.
         </p>
       </div>
 
@@ -343,9 +343,8 @@ export class EmailService {
 
             <p>This is your opportunity to learn directly from founders, innovators, and experts as we explore <strong>Ethical Innovation</strong> and <strong>Shariah-aligned excellence</strong>.</p>
             
-            <div style="text-align: center; margin-top: 35px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
-              <a href="${event.location}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; width: 200px;">Secure Your Seat Now</a>
-              <a href="${generateGoogleCalendarLink(event.title, event.date, event.explanation || 'NextIF Mentorship Session', event.location)}" style="background-color: #ffffff; color: #4f46e5; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 1px solid #4f46e5; width: 200px; font-size: 13px;">🗓️ Add to Google Calendar</a>
+            <div style="text-align: center; margin-top: 35px;">
+              <a href="${generateGoogleCalendarLink(event.title, event.date, event.explanation || 'NextIF Mentorship Session', event.location)}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 14px;">🗓️ Add to Google Calendar</a>
             </div>
 
             <p style="margin-top: 30px; font-size: 14px; color: #64748b; font-style: italic;">"Being part of the NextIF experience means building the future of Halal Entrepreneurship across the globe."</p>
