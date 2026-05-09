@@ -33,19 +33,31 @@ export const updateProfile = async (req: Request, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-  const { phone, avatar, instagram, twitter, linkedin, facebook } = req.body;
+  const { phone, avatar, instagram, twitter, linkedin, facebook, courseOfStudy } = req.body;
 
-  // Only allow updating specific profile fields (Restricting institution, courseOfStudy and names)
+  const currentAmbassador = await Ambassador.findById(req.user.id);
+  if (!currentAmbassador) {
+    return res.status(404).json({ message: "Fellow not found" });
+  }
+
+  const updates: any = {
+    "profile.phone": phone,
+    "profile.avatar": avatar,
+    "profile.instagram": instagram,
+    "profile.twitter": twitter,
+    "profile.linkedin": linkedin,
+    "profile.facebook": facebook,
+  };
+
+  // Allow setting courseOfStudy only if it's currently empty
+  if (!currentAmbassador.profile?.courseOfStudy && courseOfStudy) {
+    updates["profile.courseOfStudy"] = courseOfStudy;
+  }
+
+  // Only allow updating specific profile fields (Restricting institution and names)
   const ambassador = await Ambassador.findByIdAndUpdate(
     req.user.id,
-    {
-      "profile.phone": phone,
-      "profile.avatar": avatar,
-      "profile.instagram": instagram,
-      "profile.twitter": twitter,
-      "profile.linkedin": linkedin,
-      "profile.facebook": facebook,
-    },
+    updates,
     { new: true, runValidators: true }
   );
 
