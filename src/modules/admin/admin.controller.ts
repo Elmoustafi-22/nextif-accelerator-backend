@@ -71,7 +71,16 @@ export const getAdminProfile = async (req: Request, res: Response) => {
   if (!admin) {
     return res.status(404).json({ message: "Admin not found" });
   }
-  res.json(admin);
+  res.json({
+    id: admin._id.toString(),
+    email: admin.email,
+    role: "admin",
+    firstName: admin.firstName,
+    lastName: admin.lastName,
+    title: admin.title,
+    avatar: admin.avatar,
+    isFirstLogin: !admin.passwordSet,
+  });
 };
 
 export const updateAdminProfile = async (req: Request, res: Response) => {
@@ -84,7 +93,19 @@ export const updateAdminProfile = async (req: Request, res: Response) => {
     { firstName, lastName, title, avatar },
     { new: true, runValidators: true }
   );
-  res.json(admin);
+  if (!admin) {
+    return res.status(404).json({ message: "Admin not found" });
+  }
+  res.json({
+    id: admin._id.toString(),
+    email: admin.email,
+    role: "admin",
+    firstName: admin.firstName,
+    lastName: admin.lastName,
+    title: admin.title,
+    avatar: admin.avatar,
+    isFirstLogin: !admin.passwordSet,
+  });
 };
 
 export const changeAdminPassword = async (req: Request, res: Response) => {

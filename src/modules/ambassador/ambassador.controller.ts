@@ -18,7 +18,15 @@ export const getProfile = async (req: Request, res: Response) => {
   if (!ambassador) {
     return res.status(404).json({ message: "Fellow not found" });
   }
-  res.json(ambassador);
+  res.json({
+    id: ambassador._id.toString(),
+    email: ambassador.email,
+    role: "ambassador",
+    firstName: ambassador.firstName,
+    lastName: ambassador.lastName,
+    profile: ambassador.profile,
+    isFirstLogin: !ambassador.passwordSet,
+  });
 };
 
 export const updateProfile = async (req: Request, res: Response) => {
@@ -45,7 +53,15 @@ export const updateProfile = async (req: Request, res: Response) => {
     return res.status(404).json({ message: "Fellow not found" });
   }
 
-  res.json(ambassador);
+  res.json({
+    id: ambassador._id.toString(),
+    email: ambassador.email,
+    role: "ambassador",
+    firstName: ambassador.firstName,
+    lastName: ambassador.lastName,
+    profile: ambassador.profile,
+    isFirstLogin: !ambassador.passwordSet,
+  });
 };
 
 export const changeAmbassadorPassword = async (req: Request, res: Response) => {
