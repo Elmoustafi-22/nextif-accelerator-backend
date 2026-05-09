@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import Ambassador from "./ambassador.model";
 import Task from "../task/task.model";
 import TaskSubmission from "../task/submission.model";
+import Attendance from "../event/attendance.model";
 import { comparePassword, hashPassword } from "../../utils/password";
 // Auth logic moved to modules/auth
 
@@ -128,9 +129,17 @@ export const getAmbassadorStats = async (req: Request, res: Response) => {
     }).populate("taskId", "rewardPoints");
 
     const completedCount = completedSubmissions.length;
-    const pointsEarned = completedSubmissions.reduce((sum, sub) => {
+    const taskPoints = completedSubmissions.reduce((sum, sub) => {
       return sum + ((sub.taskId as any)?.rewardPoints || 0);
     }, 0);
+
+    const attendanceRecords = await Attendance.find({
+      ambassador: req.user.id,
+      status: "PRESENT",
+    });
+    const attendancePoints = attendanceRecords.reduce((sum, record) => sum + (record.marks || 0), 0);
+
+    const pointsEarned = taskPoints + attendancePoints;
 
     // 3. Pending (Submitted but not Verified)
     const pendingReview = await TaskSubmission.countDocuments({
@@ -147,7 +156,7 @@ export const getAmbassadorStats = async (req: Request, res: Response) => {
     // 5. Calculate Global Rank
     // Note: For a serious implementation, we should cache this or use a leaderboard collection.
     // For now, we'll calculate it by aggregating points for all ambassadors.
-    const leaderboard = await TaskSubmission.aggregate([
+    const taskPointsAgg = await TaskSubmission.aggregate([
       { $match: { status: "COMPLETED" } },
       {
         $lookup: {
@@ -161,14 +170,36 @@ export const getAmbassadorStats = async (req: Request, res: Response) => {
       {
         $group: {
           _id: "$ambassadorId",
-          totalPoints: { $sum: "$task.rewardPoints" },
+          points: { $sum: "$task.rewardPoints" },
         },
       },
-      { $sort: { totalPoints: -1 } },
     ]);
 
+    const attendancePointsAgg = await Attendance.aggregate([
+      { $match: { status: "PRESENT" } },
+      {
+        $group: {
+          _id: "$ambassador",
+          points: { $sum: "$marks" },
+        },
+      },
+    ]);
+
+    const pointsMap = new Map<string, number>();
+    taskPointsAgg.forEach((item) => pointsMap.set(item._id.toString(), item.points));
+    attendancePointsAgg.forEach((item) => {
+      const id = item._id.toString();
+      pointsMap.set(id, (pointsMap.get(id) || 0) + item.points);
+    });
+
+    const leaderboard = Array.from(pointsMap.entries()).map(([id, totalPoints]) => ({
+      id,
+      totalPoints,
+    }));
+    leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
+
     const rankIndex = leaderboard.findIndex(
-      (item) => item._id.toString() === userId.toString()
+      (item) => item.id === userId.toString()
     );
     const globalRank =
       rankIndex !== -1 ? rankIndex + 1 : leaderboard.length + 1;
@@ -238,6 +269,8 @@ export const getAmbassadorStats = async (req: Request, res: Response) => {
       pendingReview,
       completionRate,
       pointsEarned,
+      taskPoints,
+      attendancePoints,
       globalRank: `#${globalRank}`,
       weeklyProgress: Math.min(Math.round(weeklyProgress), 200),
       mandatoryPending: mandatoryTasks.length - mandatoryCompleted,

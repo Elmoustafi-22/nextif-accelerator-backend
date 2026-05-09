@@ -9,6 +9,7 @@ import TaskSubmission from "../task/submission.model";
 import Complaint from "../complaint/complaint.model";
 import Notification from "../notification/notification.model";
 import Task from "../task/task.model";
+import Attendance from "../event/attendance.model";
 import { EmailService } from "../../utils/email.service";
 
 /**
@@ -165,6 +166,87 @@ export const getAllAmbassadors = async (req: Request, res: Response) => {
       pages: Math.ceil(total / Number(limit)),
     },
   });
+};
+
+export const getLeaderboard = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    const ambassadors = await Ambassador.find({ role: "AMBASSADOR" }).select(
+      "firstName lastName email profile.institution accountStatus"
+    );
+
+    const taskPointsAgg = await TaskSubmission.aggregate([
+      { $match: { status: "COMPLETED" } },
+      {
+        $lookup: {
+          from: "tasks",
+          localField: "taskId",
+          foreignField: "_id",
+          as: "task",
+        },
+      },
+      { $unwind: "$task" },
+      {
+        $group: {
+          _id: "$ambassadorId",
+          points: { $sum: "$task.rewardPoints" },
+        },
+      },
+    ]);
+
+    const attendancePointsAgg = await Attendance.aggregate([
+      { $match: { status: "PRESENT" } },
+      {
+        $group: {
+          _id: "$ambassador",
+          points: { $sum: "$marks" },
+        },
+      },
+    ]);
+
+    const taskPointsMap = new Map<string, number>();
+    taskPointsAgg.forEach((item) =>
+      taskPointsMap.set(item._id.toString(), item.points)
+    );
+
+    const attendancePointsMap = new Map<string, number>();
+    attendancePointsAgg.forEach((item) =>
+      attendancePointsMap.set(item._id.toString(), item.points)
+    );
+
+    let leaderboard = ambassadors.map((ambassador) => {
+      const id = ambassador._id.toString();
+      const taskPoints = taskPointsMap.get(id) || 0;
+      const attendancePoints = attendancePointsMap.get(id) || 0;
+      const totalPoints = taskPoints + attendancePoints;
+
+      return {
+        id,
+        firstName: ambassador.firstName,
+        lastName: ambassador.lastName,
+        email: ambassador.email,
+        institution: ambassador.profile?.institution || "Unknown",
+        accountStatus: ambassador.accountStatus,
+        taskPoints,
+        attendancePoints,
+        totalPoints,
+      };
+    });
+
+    // Sort by total points descending
+    leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
+
+    // Assign rank
+    leaderboard = leaderboard.map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    }));
+
+    res.json(leaderboard);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching leaderboard", error });
+  }
 };
 
 export const createAmbassador = async (req: Request, res: Response) => {

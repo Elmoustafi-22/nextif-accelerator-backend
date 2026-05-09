@@ -22,6 +22,7 @@ import {
   getAllAdmins,
   getAdminById,
   sendAdminMessage,
+  getLeaderboard,
 } from "./admin.controller";
 
 const adminRouter = Router();
@@ -37,6 +38,7 @@ adminRouter.patch("/change-password", changeAdminPassword);
 
 // Dashboard Stats
 adminRouter.get("/stats", getDashboardStats);
+adminRouter.get("/leaderboard", getLeaderboard);
 
 // Messaging / Announcements
 adminRouter.post("/messages", sendMessage); // To Ambassador
