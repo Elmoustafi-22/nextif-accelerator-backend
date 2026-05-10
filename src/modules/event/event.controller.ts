@@ -42,13 +42,24 @@ export const createEvent = async (req: Request, res: Response) => {
 
     // Email Notification - Fire and forget to avoid blocking the response
     fellows.forEach((fellow) => {
-      EmailService.sendEventNotificationEmail(
-        fellow.email,
-        fellow.firstName,
-        event
-      ).catch((err) =>
-        console.error(`Failed to send email to ${fellow.email}:`, err)
-      );
+      if (fellow.accountStatus === "ACTIVE") {
+        EmailService.sendEventNotificationEmail(
+          fellow.email,
+          fellow.firstName,
+          event
+        ).catch((err) =>
+          console.error(`Failed to send email to ${fellow.email}:`, err)
+        );
+      } else {
+        EmailService.sendEventNotificationPreloadedEmail(
+          fellow.email,
+          fellow.firstName,
+          fellow.lastName,
+          event
+        ).catch((err) =>
+          console.error(`Failed to send preloaded email to ${fellow.email}:`, err)
+        );
+      }
     });
 
     // Notify all admins about the new event
@@ -58,12 +69,22 @@ export const createEvent = async (req: Request, res: Response) => {
       const creatorName = creator ? `${creator.firstName} ${creator.lastName}` : "An Admin";
 
       admins.forEach((admin) => {
-        EmailService.sendAdminEventNotificationEmail(
-          admin.email,
-          admin.firstName,
-          event,
-          creatorName
-        ).catch((err) => console.error(`Failed to notify admin ${admin.email}:`, err));
+        if (admin.accountStatus === "ACTIVE") {
+          EmailService.sendAdminEventNotificationEmail(
+            admin.email,
+            admin.firstName,
+            event,
+            creatorName
+          ).catch((err) => console.error(`Failed to notify admin ${admin.email}:`, err));
+        } else {
+          EmailService.sendAdminEventNotificationPreloadedEmail(
+            admin.email,
+            admin.firstName,
+            admin.lastName,
+            event,
+            creatorName
+          ).catch((err) => console.error(`Failed to notify preloaded admin ${admin.email}:`, err));
+        }
       });
     } catch (adminErr) {
       console.error("Failed to fetch admins for notification:", adminErr);

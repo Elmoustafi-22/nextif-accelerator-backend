@@ -588,6 +588,64 @@ export class EmailService {
   }
 
   /**
+   * Send Event Notification Email (Preloaded Users)
+   */
+  static async sendEventNotificationPreloadedEmail(
+    to: string,
+    firstName: string,
+    lastName: string,
+    event: any
+  ) {
+    const loginUrl = env.FRONTEND_URL;
+    const html = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 40px 20px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">New Event Scheduled</h1>
+            <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">NextIF Global Mentorship & Accelerator</p>
+          </div>
+
+          <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+            <h2 style="color: #4f46e5; margin-top: 0;">Assalamu Alaikum ${firstName},</h2>
+            
+            <p style="font-size: 16px;">We have scheduled a new event: <strong>${event.title}</strong>. This is part of your journey in the NextIF Accelerator.</p>
+
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4f46e5;">
+              <ul style="list-style: none; padding: 0; margin: 0; color: #475569;">
+                <li style="margin-bottom: 8px;">📅 <strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</li>
+                <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${new Date(event.date).toLocaleTimeString()}</li>
+                <li style="margin-bottom: 8px;">📍 <strong>Link:</strong> <a href="${event.location}" style="color: #4f46e5;">Join Session</a></li>
+              </ul>
+            </div>
+
+            <div style="background: #fdf2f2; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #fee2e2;">
+              <h3 style="margin-top: 0; color: #991b1b; font-size: 16px;">First Time Logging In?</h3>
+              <p style="font-size: 14px; color: #4b5563;">Use your email and last name to access the portal:</p>
+              <p style="margin: 10px 0; font-family: monospace; font-weight: bold;">Email: ${to}<br/>Password: ${lastName}</p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 35px;">
+              <a href="${loginUrl}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Access Portal</a>
+            </div>
+          </div>
+
+          <div style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+            <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+          </div>
+        </div>
+      `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `New Event: ${event.title}`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send preloaded event email:", error);
+    }
+  }
+
+  /**
    * Notify Admin about a new Event
    */
   static async sendAdminEventNotificationEmail(
@@ -620,6 +678,51 @@ export class EmailService {
     return this.sendViaApi({
       to,
       subject: `[Admin] New Event Created: ${event.title}`,
+      html,
+    });
+  }
+
+  /**
+   * Notify Admin about a new Event (Preloaded)
+   */
+  static async sendAdminEventNotificationPreloadedEmail(
+    to: string,
+    adminName: string,
+    lastName: string,
+    event: any,
+    creatorName: string
+  ) {
+    const loginUrl = env.ADMIN_FRONTEND_URL;
+    const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Admin Alert: New Event Scheduled</h2>
+          <p>Hello ${adminName},</p>
+          <p>A new event <strong>${event.title}</strong> has been created by <strong>${creatorName}</strong>.</p>
+          
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <p style="margin: 0; font-weight: bold; color: #1e293b;">Event Details:</p>
+            <ul style="margin: 10px 0; color: #334155;">
+              <li><strong>Title:</strong> ${event.title}</li>
+              <li><strong>Date:</strong> ${new Date(event.date).toLocaleString()}</li>
+            </ul>
+          </div>
+
+          <div style="background: #fdf2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fee2e2;">
+            <p style="margin: 0; font-weight: bold; color: #991b1b;">Admin Credentials:</p>
+            <p style="margin: 5px 0; font-size: 14px;">Email: ${to}<br/>Password: ${lastName}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 20px 0;">
+            <a href="${loginUrl}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Login to Admin Panel</a>
+          </div>
+          
+          <p>Best regards,<br/>NextIF System Bot</p>
+        </div>
+      `;
+
+    return this.sendViaApi({
+      to,
+      subject: `[Admin] New Event: ${event.title}`,
       html,
     });
   }
