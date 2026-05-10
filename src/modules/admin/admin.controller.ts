@@ -41,22 +41,43 @@ export const sendMessage = async (req: Request, res: Response) => {
 export const sendAnnouncement = async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-  const { title, body } = req.body;
+  const { title, body, link } = req.body;
 
-  // Get all Active Ambassadors
-  const fellows = await Ambassador.find({ accountStatus: "ACTIVE" });
+  // Get ALL Ambassadors (Active or Preloaded)
+  const fellows = await Ambassador.find({ role: "AMBASSADOR" });
   const ambassadorIds = fellows.map((a) => a._id);
 
+  if (ambassadorIds.length === 0) {
+    return res.status(200).json({ message: "No fellows found to send announcement to." });
+  }
+
+  // 1. Create In-App Notifications
   await NotificationService.broadcast(
     ambassadorIds,
     "AMBASSADOR",
     "ANNOUNCEMENT",
     title,
-    body
+    body,
+    link
   );
 
+  // 2. Send Broadcast Emails
+  const emailPromises = fellows.map((fellow) =>
+    EmailService.sendBroadcastEmail(
+      fellow.email,
+      fellow.firstName,
+      title,
+      body,
+      link
+    ).catch((err) =>
+      console.error(`Failed to send announcement email to ${fellow.email}:`, err)
+    )
+  );
+
+  await Promise.all(emailPromises);
+
   res.status(201).json({
-    message: `Announcement sent to ${ambassadorIds.length} fellows`,
+    message: `Announcement sent (in-app + email) to ${ambassadorIds.length} fellows`,
   });
 };
 
