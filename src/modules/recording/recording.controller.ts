@@ -22,12 +22,12 @@ export const createRecording = async (req: Request, res: Response) => {
 
     // --- Notification Logic ---
     
-    // 1. Fetch all mentees (Ambassadors) who are not suspended
-    const fellows = await Ambassador.find({ accountStatus: { $ne: "SUSPENDED" } });
+    // 1. Fetch all mentees (Ambassadors)
+    const fellows = await Ambassador.find({});
     const fellowIds = fellows.map((f) => f._id);
 
-    // 2. Fetch all admins who are active or preloaded
-    const admins = await Admin.find({ accountStatus: { $in: ["ACTIVE", "PRELOADED"] } });
+    // 2. Fetch all admins
+    const admins = await Admin.find({});
     const adminIds = admins.map((a) => a._id);
 
     // 3. System Notifications

@@ -24,7 +24,7 @@ export const createEvent = async (req: Request, res: Response) => {
     });
 
     // Notify all fellows
-    const fellows = await Ambassador.find({ accountStatus: { $ne: "SUSPENDED" } });
+    const fellows = await Ambassador.find({});
     const fellowIds = fellows.map((f) => f._id);
 
     // System Notification
@@ -53,7 +53,7 @@ export const createEvent = async (req: Request, res: Response) => {
 
     // Notify all admins about the new event
     try {
-      const admins = await Admin.find({ accountStatus: "ACTIVE" });
+      const admins = await Admin.find({});
       const creator = await Admin.findById(req.user!.id);
       const creatorName = creator ? `${creator.firstName} ${creator.lastName}` : "An Admin";
 
@@ -99,7 +99,7 @@ export const updateEvent = async (req: Request, res: Response) => {
         );
 
         // Notify all fellows
-        const fellows = await Ambassador.find({ accountStatus: { $ne: "SUSPENDED" } });
+        const fellows = await Ambassador.find({});
 
         const fellowIds = fellows.map((f) => f._id);
 
@@ -134,7 +134,7 @@ export const updateEvent = async (req: Request, res: Response) => {
 
         // Email Notification for admins - Fire and forget
         try {
-            const admins = await Admin.find({ accountStatus: { $in: ["ACTIVE", "PRELOADED"] } });
+            const admins = await Admin.find({});
             admins.forEach((admin) => {
                 if (admin.accountStatus === "ACTIVE") {
                   EmailService.sendEventRecordingActiveEmail(
