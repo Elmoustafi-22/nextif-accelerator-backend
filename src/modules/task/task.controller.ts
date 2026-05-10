@@ -101,12 +101,49 @@ export const getAllTasks = async (req: Request, res: Response) => {
 };
 
 export const updateTask = async (req: Request, res: Response) => {
+  const oldTask = await Task.findById(req.params.id);
+  if (!oldTask) {
+    return res.status(404).json({ message: "Task not found" });
+  }
+
+  const oldAssignedTo = oldTask.assignedTo.map((id) => id.toString());
+  const newAssignedTo = req.body.assignedTo || [];
+
+  // Find newly assigned mentees who weren't assigned before
+  const newlyAssigned = newAssignedTo.filter(
+    (id: string) => !oldAssignedTo.includes(id.toString())
+  );
+
   const task = await Task.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
+
   if (!task) {
-    return res.status(404).json({ message: "Task not found" });
+    return res.status(404).json({ message: "Task not found after update" });
   }
+
+  // Send assignment emails ONLY to newly assigned mentees
+  if (newlyAssigned.length > 0) {
+    try {
+      const ambassadors = await Ambassador.find({
+        _id: { $in: newlyAssigned },
+      });
+      for (const ambassador of ambassadors) {
+        await EmailService.sendTaskAssignedEmail(
+          ambassador.email,
+          ambassador.firstName,
+          task.title,
+          task.dueDate
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Failed to send assignment emails to new assignees:",
+        error
+      );
+    }
+  }
+
   res.json(task);
 };
 
@@ -156,6 +193,12 @@ export const verifySubmission = async (req: Request, res: Response) => {
       .json({ message: "Invalid status. Use COMPLETED, REJECTED, or REDO." });
   }
 
+  const existingSubmission = await TaskSubmission.findById(id);
+  if (!existingSubmission) {
+    return res.status(404).json({ message: "Submission not found" });
+  }
+  const oldStatus = existingSubmission.status;
+
   const submission = await TaskSubmission.findByIdAndUpdate(
     id,
     {
@@ -171,7 +214,7 @@ export const verifySubmission = async (req: Request, res: Response) => {
     .populate("reviewedBy", "firstName lastName");
 
   if (!submission) {
-    return res.status(404).json({ message: "Submission not found" });
+    return res.status(404).json({ message: "Submission update failed" });
   }
 
   // Notify Ambassador
@@ -185,23 +228,41 @@ export const verifySubmission = async (req: Request, res: Response) => {
       recipientId: ambassador._id,
       recipientRole: "AMBASSADOR",
       type: "MESSAGE",
-      title: status === "COMPLETED" ? `Task Verified: ${taskTitle}` : `Revision Needed: ${taskTitle}`,
-      body: status === "COMPLETED" 
-        ? `Excellent work! Your submission for "${taskTitle}" has been verified. You earned ${points} points.`
-        : `Your submission for "${taskTitle}" requires revision. Feedback: "${feedback}"`,
+      title:
+        status === "COMPLETED"
+          ? `Task Verified: ${taskTitle}`
+          : status === "REJECTED"
+          ? `Task Rejected: ${taskTitle}`
+          : `Revision Needed: ${taskTitle}`,
+      body:
+        status === "COMPLETED"
+          ? `Excellent work! Your submission for "${taskTitle}" has been verified. You earned ${points} points.`
+          : status === "REJECTED"
+          ? `Your submission for "${taskTitle}" was rejected. Reason: "${feedback}"`
+          : `Your submission for "${taskTitle}" requires revision. Feedback: "${feedback}"`,
       read: false,
       referenceId: task._id,
     });
 
     // Send Status Emails
-    if (status === "REDO") {
+    if (status === "REDO" && oldStatus !== "REDO") {
       await EmailService.sendTaskRedoEmail(
         ambassador.email,
         ambassador.firstName,
         taskTitle,
         feedback || "Please review the instructions and resubmit your work."
       );
-    } else if (status === "COMPLETED") {
+    } else if (status === "REJECTED" && oldStatus !== "REJECTED") {
+      await EmailService.sendTaskRejectedEmail(
+        ambassador.email,
+        ambassador.firstName,
+        taskTitle,
+        feedback || "Your task submission was not accepted."
+      );
+    }
+
+    // Points logic
+    if (status === "COMPLETED" && oldStatus !== "COMPLETED") {
       // Award points to ambassador
       await Ambassador.findByIdAndUpdate(ambassador._id, {
         $inc: { points: points },
@@ -213,6 +274,11 @@ export const verifySubmission = async (req: Request, res: Response) => {
         taskTitle,
         points
       );
+    } else if (oldStatus === "COMPLETED" && status !== "COMPLETED") {
+      // Reversing a previously completed task - deduct points
+      await Ambassador.findByIdAndUpdate(ambassador._id, {
+        $inc: { points: -points },
+      });
     }
   } catch (error) {
     console.error("Failed to send notification/email:", error);

@@ -258,6 +258,56 @@ export class EmailService {
   }
 
   /**
+   * Send Task Rejected Email - High Fidelity
+   */
+  static async sendTaskRejectedEmail(
+    to: string,
+    firstName: string,
+    taskTitle: string,
+    remark: string
+  ) {
+    const html = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+          <div style="background-color: #fef2f2; padding: 40px 20px; text-align: center; color: #991b1b; border-bottom: 4px solid #fecaca;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Task Submission Rejected</h1>
+            <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">Important update regarding your submission</p>
+          </div>
+
+          <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+            <h2 style="color: #991b1b; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <p style="font-size: 16px;">The admin team has reviewed your submission for <strong>${taskTitle}</strong> and unfortunately, it has been marked as <strong>Rejected</strong>.</p>
+
+            <div style="background: #fff1f2; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #ffe4e6;">
+              <p style="margin: 0; font-weight: 800; text-transform: uppercase; font-size: 12px; color: #be123c; letter-spacing: 1px;">Admin Reason for Rejection</p>
+              <p style="margin: 10px 0; color: #9f1239; font-size: 16px; font-style: italic;">"${remark}"</p>
+            </div>
+
+            <p>If you believe this was an error, please reach out via the complaints portal on your dashboard.</p>
+            
+            <div style="text-align: center; margin-top: 35px;">
+              <a href="${env.FRONTEND_URL}/dashboard" style="background-color: #dc2626; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Dashboard</a>
+            </div>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+            <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+          </div>
+        </div>
+      `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `Task Rejected: ${taskTitle}`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send task rejection email:", error);
+    }
+  }
+
+  /**
    * Send Task Success Email - High Fidelity
    */
   static async sendTaskSuccessEmail(
