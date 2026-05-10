@@ -419,39 +419,67 @@ export class EmailService {
   }
 
   /**
-   * Send Event Update (Recording) Email
+   * Send Recording Available Email (Active Users)
    */
-  static async sendEventUpdateEmail(
+  static async sendEventRecordingActiveEmail(
     to: string,
     firstName: string,
-    event: any
+    eventTitle: string
   ) {
     const html = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #2563eb;">Recording Available: ${event.title}</h2>
-          <p>Hello ${firstName},</p>
-          <p>The recording for the event <strong>${event.title}</strong> is now available.</p>
-          
-          <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #dcfce7;">
-            <p style="margin: 0; font-weight: bold; color: #166534;">Watch Recording:</p>
-            <p style="margin: 10px 0;"><a href="${event.recordingLink}" style="color: #166534; font-weight: bold;">${event.recordingLink}</a></p>
-          </div>
-          
-          <p>You can also access this link from your dashboard under the Events section.</p>
-          
-          <p>Best regards,<br/>The NextIF Team</p>
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #2563eb;">Recording Now Available: ${eventTitle}</h2>
+        <p>Assalamu Alaikum ${firstName},</p>
+        <p>We are pleased to inform you that the recording for the session <strong>${eventTitle}</strong> is now available on your dashboard.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${env.FRONTEND_URL}/events" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Watch Recording on Dashboard</a>
         </div>
-      `;
+        <p>Best regards,<br/>The NextIF Team</p>
+      </div>
+    `;
 
-    try {
-      await this.sendViaApi({
-        to,
-        subject: `Recording Available: ${event.title}`,
-        html,
-      });
-    } catch (error) {
-      console.error("Failed to send event update email:", error);
-    }
+    return this.sendViaApi({
+      to,
+      subject: `Recording Available: ${eventTitle}`,
+      html,
+    });
+  }
+
+  /**
+   * Send Recording Available Email (Preloaded Users)
+   */
+  static async sendEventRecordingPreloadedEmail(
+    to: string,
+    firstName: string,
+    lastName: string,
+    eventTitle: string
+  ) {
+    const loginUrl = env.FRONTEND_URL;
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #2563eb;">Recording Available: ${eventTitle}</h2>
+        <p>Assalamu Alaikum ${firstName},</p>
+        <p>The recording for the session <strong>${eventTitle}</strong> is now available on the NextIF Portal.</p>
+        
+        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+          <p>Please log in to your dashboard to view the recording.</p>
+          <p style="margin: 0; font-weight: bold;">Login Instructions:</p>
+          <ul style="margin: 10px 0;">
+            <li><strong>URL:</strong> <a href="${loginUrl}">${loginUrl}</a></li>
+            <li>Click on <strong>First time logging in</strong>, then sign in with:</li>
+            <li><strong>Username:</strong> ${to}</li>
+            <li><strong>Initial Password:</strong> Use your <strong>Last Name</strong>: ${lastName}</li>
+          </ul>
+        </div>
+        <p>Best regards,<br/>The NextIF Team</p>
+      </div>
+    `;
+
+    return this.sendViaApi({
+      to,
+      subject: `Recording Available: ${eventTitle}`,
+      html,
+    });
   }
 
   /**

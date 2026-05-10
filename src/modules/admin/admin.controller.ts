@@ -43,41 +43,58 @@ export const sendAnnouncement = async (req: Request, res: Response) => {
 
   const { title, body, link } = req.body;
 
-  // Get ALL Ambassadors (Active or Preloaded)
-  const fellows = await Ambassador.find({ role: "AMBASSADOR" });
-  const ambassadorIds = fellows.map((a) => a._id);
+  // 1. Get ALL Ambassadors and Admins
+  const [fellows, admins] = await Promise.all([
+    Ambassador.find({ role: "AMBASSADOR" }),
+    Admin.find({})
+  ]);
 
-  if (ambassadorIds.length === 0) {
-    return res.status(200).json({ message: "No fellows found to send announcement to." });
+  const allRecipientIds = [
+    ...fellows.map((f) => f._id),
+    ...admins.map((a) => a._id),
+  ];
+
+  if (allRecipientIds.length === 0) {
+    return res.status(200).json({ message: "No users found to send announcement to." });
   }
 
-  // 1. Create In-App Notifications
-  await NotificationService.broadcast(
-    ambassadorIds,
-    "AMBASSADOR",
-    "ANNOUNCEMENT",
-    title,
-    body,
-    link
-  );
-
-  // 2. Send Broadcast Emails
-  const emailPromises = fellows.map((fellow) =>
-    EmailService.sendBroadcastEmail(
-      fellow.email,
-      fellow.firstName,
-      title,
-      body,
-      link
-    ).catch((err) =>
-      console.error(`Failed to send announcement email to ${fellow.email}:`, err)
+  // 2. Create In-App Notifications
+  // We need to broadcast separately because of different recipient roles
+  await Promise.all([
+    fellows.length > 0 && NotificationService.broadcast(
+        fellows.map(f => f._id),
+        "AMBASSADOR",
+        "ANNOUNCEMENT",
+        title,
+        body,
+        link
+    ),
+    admins.length > 0 && NotificationService.broadcast(
+        admins.map(a => a._id),
+        "ADMIN",
+        "ANNOUNCEMENT",
+        title,
+        body,
+        link
     )
-  );
+  ]);
+
+  // 3. Send Broadcast Emails
+  const emailPromises = [
+    ...fellows.map((fellow) =>
+      EmailService.sendBroadcastEmail(fellow.email, fellow.firstName, title, body, link)
+        .catch((err) => console.error(`Failed to send announcement email to ${fellow.email}:`, err))
+    ),
+    ...admins.map((admin) =>
+      EmailService.sendBroadcastEmail(admin.email, admin.firstName, title, body, link)
+        .catch((err) => console.error(`Failed to send announcement email to ${admin.email}:`, err))
+    )
+  ];
 
   await Promise.all(emailPromises);
 
   res.status(201).json({
-    message: `Announcement sent (in-app + email) to ${ambassadorIds.length} fellows`,
+    message: `Announcement sent (in-app + email) to ${fellows.length} fellows and ${admins.length} admins`,
   });
 };
 

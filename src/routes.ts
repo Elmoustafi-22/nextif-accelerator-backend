@@ -6,6 +6,7 @@ import taskRouter from "./modules/task/task.routes";
 import notificationRouter from "./modules/notification/notification.routes";
 import complaintRouter from "./modules/complaint/complaint.routes";
 import eventRouter from "./modules/event/event.routes";
+import recordingRouter from "./modules/recording/recording.routes";
 
 const router = Router();
 
@@ -23,5 +24,7 @@ router.use("/notifications", notificationRouter);
 router.use("/complaints", complaintRouter);
 // Mount Event Routes
 router.use("/events", eventRouter);
+// Mount Recording Routes
+router.use("/recordings", recordingRouter);
 
 export default router;

@@ -6,7 +6,7 @@ import { Types } from "mongoose";
 import { NotificationService } from "../notification/notification.service";
 import { EmailService } from "../../utils/email.service";
 import Admin from "../admin/admin.model";
-
+import Recording from "../recording/recording.model";
 // --- Event Management (Admin) ---
 
 export const createEvent = async (req: Request, res: Response) => {
@@ -89,8 +89,18 @@ export const updateEvent = async (req: Request, res: Response) => {
 
     // Check if recordingLink was added/updated
     if (updates.recordingLink && updates.recordingLink !== oldEvent?.recordingLink) {
+        // Auto-add/update to Recordings collection
+        await Recording.findOneAndUpdate(
+            { title: event.title },
+            { 
+                $push: { links: { title: "Session Recording", url: updates.recordingLink } } 
+            },
+            { upsert: true, setDefaultsOnInsert: true, new: true }
+        );
+
         // Notify all fellows
         const fellows = await Ambassador.find({ accountStatus: { $ne: "SUSPENDED" } });
+
         const fellowIds = fellows.map((f) => f._id);
 
         // System Notification
@@ -104,16 +114,46 @@ export const updateEvent = async (req: Request, res: Response) => {
             event._id
         );
 
-        // Email Notification - Fire and forget
+        // Email Notification for fellows - Fire and forget
         fellows.forEach((fellow) => {
-            EmailService.sendEventUpdateEmail(
+            if (fellow.accountStatus === "ACTIVE") {
+              EmailService.sendEventRecordingActiveEmail(
                 fellow.email,
                 fellow.firstName,
-                event
-            ).catch((err) =>
-                console.error(`Failed to send update email to ${fellow.email}:`, err)
-            );
+                event.title
+              ).catch((err) => console.error(`Failed to send active email to ${fellow.email}:`, err));
+            } else {
+              EmailService.sendEventRecordingPreloadedEmail(
+                fellow.email,
+                fellow.firstName,
+                fellow.lastName,
+                event.title
+              ).catch((err) => console.error(`Failed to send preloaded email to ${fellow.email}:`, err));
+            }
         });
+
+        // Email Notification for admins - Fire and forget
+        try {
+            const admins = await Admin.find({ accountStatus: { $in: ["ACTIVE", "PRELOADED"] } });
+            admins.forEach((admin) => {
+                if (admin.accountStatus === "ACTIVE") {
+                  EmailService.sendEventRecordingActiveEmail(
+                    admin.email,
+                    admin.firstName,
+                    event.title
+                  ).catch((err) => console.error(`Failed to send active admin email to ${admin.email}:`, err));
+                } else {
+                  EmailService.sendEventRecordingPreloadedEmail(
+                    admin.email,
+                    admin.firstName,
+                    admin.lastName,
+                    event.title
+                  ).catch((err) => console.error(`Failed to send preloaded admin email to ${admin.email}:`, err));
+                }
+            });
+        } catch (adminErr) {
+            console.error("Failed to fetch admins for recording notification:", adminErr);
+        }
     }
 
     res.json(event);
