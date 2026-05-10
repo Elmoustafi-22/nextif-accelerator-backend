@@ -446,6 +446,42 @@ export class EmailService {
   }
 
   /**
+   * Send Recording Available Email (Active Users) - Generic
+   */
+  static async sendRecordingAvailableActiveEmail(
+    to: string,
+    firstName: string,
+    title: string,
+    url: string
+  ) {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 20px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 800;">Recording Available</h1>
+        </div>
+
+        <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+          <p>Assalamu Alaikum ${firstName},</p>
+          <p>We are pleased to inform you that the recording for <strong>${title}</strong> is now available.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${url}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Watch Recording</a>
+          </div>
+          <p>Best regards,<br/>The NextIF Team</p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+          <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendViaApi({
+      to,
+      subject: `Recording Available: ${title}`,
+      html,
+    });
+  }
+
+  /**
    * Send Recording Available Email (Preloaded Users)
    */
   static async sendEventRecordingPreloadedEmail(
@@ -456,28 +492,97 @@ export class EmailService {
   ) {
     const loginUrl = env.FRONTEND_URL;
     const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #2563eb;">Recording Available: ${eventTitle}</h2>
-        <p>Assalamu Alaikum ${firstName},</p>
-        <p>The recording for the session <strong>${eventTitle}</strong> is now available on the NextIF Portal.</p>
-        
-        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
-          <p>Please log in to your dashboard to view the recording.</p>
-          <p style="margin: 0; font-weight: bold;">Login Instructions:</p>
-          <ul style="margin: 10px 0;">
-            <li><strong>URL:</strong> <a href="${loginUrl}">${loginUrl}</a></li>
-            <li>Click on <strong>First time logging in</strong>, then sign in with:</li>
-            <li><strong>Username:</strong> ${to}</li>
-            <li><strong>Initial Password:</strong> Use your <strong>Last Name</strong>: ${lastName}</li>
-          </ul>
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 20px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 800;">Recording Available: ${eventTitle}</h1>
         </div>
-        <p>Best regards,<br/>The NextIF Team</p>
+
+        <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+          <p>Assalamu Alaikum ${firstName},</p>
+          <p>The recording for the session <strong>${eventTitle}</strong> is now available on the NextIF Portal.</p>
+          
+          <div style="background: #f8fafc; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #e2e8f0;">
+            <h3 style="margin-top: 0; color: #1e293b; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">First Time Logging In?</h3>
+            
+            <p style="margin: 15px 0 8px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Email</p>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 15px; color: #0f172a; font-weight: 700; letter-spacing: 0.3px;">${to}</div>
+
+            <p style="margin: 20px 0 8px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Last Name (Initial Password)</p>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 15px; color: #0f172a; font-weight: 700; letter-spacing: 0.3px;">${lastName}</div>
+
+            <p style="margin: 20px 0 0 0; font-size: 13px; color: #64748b; background: #fef9c3; padding: 10px; border-radius: 6px; border: 1px solid #fef08a;">
+              <strong>How to log in:</strong> Go to the portal, click <strong>"First time here?"</strong>, enter your <strong>email</strong> and <strong>last name</strong> exactly as shown above.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${loginUrl}/events" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Watch Recording</a>
+          </div>
+
+          <p style="margin-top: 30px;">Best regards,<br/>The NextIF Team</p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+          <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+        </div>
       </div>
     `;
 
     return this.sendViaApi({
       to,
       subject: `Recording Available: ${eventTitle}`,
+      html,
+    });
+  }
+
+  /**
+   * Send Recording Available Email (Preloaded Users) - Generic
+   */
+  static async sendRecordingAvailablePreloadedEmail(
+    to: string,
+    firstName: string,
+    lastName: string,
+    title: string,
+    url: string
+  ) {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 20px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 800;">Recording Available: ${title}</h1>
+        </div>
+
+        <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+          <p>Assalamu Alaikum ${firstName},</p>
+          <p>The recording for the session <strong>${title}</strong> is now available on the NextIF Portal.</p>
+          
+          <div style="background: #f8fafc; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #e2e8f0;">
+            <h3 style="margin-top: 0; color: #1e293b; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">First Time Logging In?</h3>
+            
+            <p style="margin: 15px 0 8px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Email</p>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 15px; color: #0f172a; font-weight: 700; letter-spacing: 0.3px;">${to}</div>
+
+            <p style="margin: 20px 0 8px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Last Name (Initial Password)</p>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 15px; color: #0f172a; font-weight: 700; letter-spacing: 0.3px;">${lastName}</div>
+
+            <p style="margin: 20px 0 0 0; font-size: 13px; color: #64748b; background: #fef9c3; padding: 10px; border-radius: 6px; border: 1px solid #fef08a;">
+              <strong>How to log in:</strong> Go to the portal, click <strong>"First time here?"</strong> (or <strong>"First time logging in?"</strong>), enter your <strong>email</strong> and <strong>last name</strong> exactly as shown above.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${url}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Watch Recording</a>
+          </div>
+
+          <p style="margin-top: 30px;">Best regards,<br/>The NextIF Team</p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+          <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendViaApi({
+      to,
+      subject: `Recording Available: ${title}`,
       html,
     });
   }
