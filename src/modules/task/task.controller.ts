@@ -173,7 +173,7 @@ export const getSubmissions = async (req: Request, res: Response) => {
   const submissions = await TaskSubmission.find(query)
     .populate("ambassadorId", "firstName lastName email university")
     .populate("taskId", "title")
-    .populate("reviewedBy", "firstName lastName")
+    .populate("reviewedBy", "title role")
     .sort({ submittedAt: -1 });
 
   res.json(submissions);
@@ -211,7 +211,7 @@ export const verifySubmission = async (req: Request, res: Response) => {
   )
     .populate("taskId", "title rewardPoints")
     .populate("ambassadorId", "firstName lastName email university")
-    .populate("reviewedBy", "firstName lastName");
+    .populate("reviewedBy", "title role");
 
   if (!submission) {
     return res.status(404).json({ message: "Submission update failed" });
