@@ -5,7 +5,7 @@ export const generateResetToken = () => {
 
     const hashedToken = crypto
         .createHash("sha256")
-        .update("rawToken")
+        .update(rawToken)
         .digest("hex");
 
     return {
