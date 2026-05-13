@@ -426,7 +426,23 @@ export const resetPassword = async (req: Request, res: Response) => {
 
   await user.save();
 
+  const jwtToken = generateToken({
+    id: user._id.toString(),
+    role: role as "ADMIN" | "AMBASSADOR",
+  });
+
   res.json({
     message: "Password reset successful",
+    token: jwtToken,
+    user: {
+      id: user._id.toString(),
+      email: user.email,
+      role: role.toLowerCase(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      title: (user as any).title,
+      avatar: (user as any).avatar,
+      isFirstLogin: false,
+    },
   });
 };
