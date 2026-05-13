@@ -9,6 +9,8 @@ export interface IAdmin {
   password: string;
   passwordResetToken?: string | undefined;
   passwordResetExpires?: Date | undefined;
+  otp?: string | undefined;
+  otpExpires?: Date | undefined;
   role: "ADMIN";
   passwordSet: boolean;
   accountStatus: "ACTIVE" | "PRELOADED" | "SUSPENDED";
@@ -31,6 +33,8 @@ const adminSchema = new Schema<IAdmin>(
     password: { type: String, required: true, select: false },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date },
+    otp: { type: String, select: false },
+    otpExpires: { type: Date },
     role: { type: String, enum: ["ADMIN"], default: "ADMIN" },
     passwordSet: { type: Boolean, default: false },
     accountStatus: { type: String, enum: ["ACTIVE", "PRELOADED", "SUSPENDED"], default: "ACTIVE" }

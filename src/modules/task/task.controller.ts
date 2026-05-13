@@ -423,7 +423,7 @@ export const submitTask = async (req: Request, res: Response) => {
       status,
       submittedAt: new Date(),
     },
-    { new: true, upsert: true }
+    { returnDocument: 'after', upsert: true }
   );
 
   res.json(submission);

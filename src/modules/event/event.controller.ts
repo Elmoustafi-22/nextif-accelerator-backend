@@ -255,7 +255,7 @@ export const markAttendance = async (req: Request, res: Response) => {
         markedBy: new Types.ObjectId(req.user!.id),
         markedAt: new Date(),
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     res.json(attendance);

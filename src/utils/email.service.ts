@@ -806,4 +806,44 @@ export class EmailService {
 
     return this.sendViaApi({ to, subject: title, html });
   }
+
+  /**
+   * Send Password Reset OTP Email
+   */
+  static async sendOtpEmail(to: string, firstName: string, otp: string) {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 40px 20px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800;">Password Reset Request</h1>
+          <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">NextIF Fellow Portal Security</p>
+        </div>
+
+        <div style="padding: 35px; line-height: 1.6; color: #1e293b;">
+          <h2 style="color: #4f46e5; margin-top: 0; font-size: 20px;">Hello ${firstName},</h2>
+          
+          <p style="font-size: 16px;">We received a request to reset your password. Use the following code to verify your identity. This code is valid for <strong>10 minutes</strong>.</p>
+
+          <div style="background: #f8fafc; padding: 30px; border-radius: 12px; margin: 30px 0; border: 1px solid #e2e8f0; text-align: center;">
+            <p style="margin: 0 0 10px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Your Verification Code</p>
+            <div style="font-family: 'Courier New', monospace; font-size: 42px; color: #0f172a; font-weight: 800; letter-spacing: 8px; background: #ffffff; display: inline-block; padding: 10px 25px; border-radius: 8px; border: 1px solid #e2e8f0;">${otp}</div>
+          </div>
+
+          <p style="font-size: 14px; color: #64748b; background: #fffbeb; padding: 15px; border-radius: 8px; border: 1px solid #fef3c7;">
+            <strong>Security Tip:</strong> If you did not request this code, please ignore this email or contact support if you have concerns about your account security.
+          </p>
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 25px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+          <p style="margin: 0;"><strong>NextIF Global Mentorship & Accelerator Program</strong></p>
+          <p style="margin: 5px 0;">Empowering Innovators. Nurturing Leaders.</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendViaApi({
+      to,
+      subject: `[NextIF] ${otp} is your verification code`,
+      html,
+    });
+  }
 }

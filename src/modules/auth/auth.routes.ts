@@ -5,6 +5,7 @@ import {
   resetAmbassadorPassword,
   adminLogin,
   requestPasswordReset,
+  verifyOtp,
   resetPassword,
   adminFirstLoginController,
   setupAdminPassword
@@ -57,6 +58,7 @@ authRouter.patch(
 
 // Common
 authRouter.post("/password-reset-request", requestPasswordReset);
+authRouter.post("/verify-otp", verifyOtp);
 authRouter.post("/password-reset", resetPassword);
 
 export default authRouter;

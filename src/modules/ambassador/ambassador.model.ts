@@ -10,6 +10,8 @@ export interface IAmbassador {
   accountStatus: "PRELOADED" | "PASSWORD_PENDING" | "ACTIVE" | "SUSPENDED";
   passwordResetToken?: string | undefined;
   passwordResetExpires?: Date | undefined;
+  otp?: string | undefined;
+  otpExpires?: Date | undefined;
   profile: {
     phone?: string | undefined;
     avatar?: string | undefined;
@@ -45,6 +47,8 @@ const ambassadorSchema = new Schema<IAmbassador>(
     },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date },
+    otp: { type: String, select: false },
+    otpExpires: { type: Date },
     profile: {
       phone: String,
       avatar: String,

@@ -6,6 +6,8 @@ import { generateToken } from "../../utils/jwt";
 import { comparePassword, hashPassword } from "../../utils/password";
 import { Model } from "mongoose";
 import crypto from "crypto";
+import { EmailService } from "../../utils/email.service";
+import { generateOtp } from "../../utils/otp.util";
 
 /**
  * AMBASSADOR FIRST LOGIN
@@ -321,7 +323,7 @@ export const setupAdminPassword = async (req: Request, res: Response) => {
 };
 
 export const requestPasswordReset = async (req: Request, res: Response) => {
-  const { email, role } = await req.body;
+  const { email, role } = req.body;
 
   const Model = (role === "ADMIN" ? Admin : Ambassador) as Model<
     IAdmin | IAmbassador
@@ -333,7 +335,49 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 
   if (!user) {
     return res.json({
-      message: "If the email exists, a reset link will be sent",
+      message: "If the email exists, a verification code will be sent",
+    });
+  }
+
+  const otp = generateOtp();
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  user.otp = hashedOtp;
+  user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await user.save();
+
+  try {
+    await EmailService.sendOtpEmail(user.email, user.firstName, otp);
+    res.json({
+      message: "Verification code sent to your email",
+    });
+  } catch (error) {
+    console.error("Failed to send OTP email:", error);
+    res.status(500).json({
+      message: "Failed to send verification code. Please try again later.",
+    });
+  }
+};
+
+export const verifyOtp = async (req: Request, res: Response) => {
+  const { email, otp, role } = req.body;
+
+  const Model = (role === "ADMIN" ? Admin : Ambassador) as Model<
+    IAdmin | IAmbassador
+  >;
+
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  const user = await Model.findOne({
+    email: email.trim().toLowerCase(),
+    otp: hashedOtp,
+    otpExpires: { $gt: new Date() },
+  }).select("+otp");
+
+  if (!user) {
+    return res.status(400).json({
+      message: "Invalid or expired verification code",
     });
   }
 
@@ -341,13 +385,14 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 
   user.passwordResetToken = hashedToken;
   user.passwordResetExpires = expiresAt;
+  user.otp = undefined;
+  user.otpExpires = undefined;
 
   await user.save();
-  // 🔔 Email integration comes here later
-  // sendEmail(rawToken)
 
   res.json({
-    message: "Password reset instructions sent",
+    message: "OTP verified successfully",
+    resetToken: rawToken,
   });
 };
 
@@ -374,6 +419,7 @@ export const resetPassword = async (req: Request, res: Response) => {
   user.password = await hashPassword(password);
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+  user.accountStatus = "ACTIVE";
   if (role === "AMBASSADOR") {
     (user as IAmbassador).passwordSet = true;
   }
