@@ -4,10 +4,11 @@ export interface IEvent {
   title: string;
   description: string;
   date: Date;
+  endDate?: Date;
   location?: string;
   type: "WEBINAR" | "MEETING" | "WORKSHOP" | "SESSION" | "OTHER";
   speaker?: string;
-  recordingLink?: string;
+  recordingLinks: { title: string; url: string }[];
   createdBy: Types.ObjectId;
   status: "UPCOMING" | "COMPLETED" | "CANCELLED";
   createdAt: Date;
@@ -19,6 +20,7 @@ const eventSchema = new Schema<IEvent>(
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true },
     date: { type: Date, required: true },
+    endDate: { type: Date },
     location: { type: String },
     type: {
       type: String,
@@ -26,7 +28,10 @@ const eventSchema = new Schema<IEvent>(
       default: "WEBINAR",
     },
     speaker: { type: String },
-    recordingLink: { type: String },
+    recordingLinks: [{
+        title: { type: String, required: true },
+        url: { type: String, required: true }
+    }],
     createdBy: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
     status: {
       type: String,

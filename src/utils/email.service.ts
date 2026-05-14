@@ -186,7 +186,7 @@ export class EmailService {
             <p style="margin: 0; font-weight: bold;">Task Details:</p>
             <ul style="margin: 10px 0;">
               <li><strong>Title:</strong> ${taskTitle}</li>
-              <li><strong>Due Date:</strong> ${dueDate.toLocaleDateString()} ${dueDate.toLocaleTimeString()}</li>
+              <li><strong>Due Date:</strong> ${dueDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} @ ${dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</li>
             </ul>
           </div>
           
@@ -370,14 +370,14 @@ export class EmailService {
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
           <!-- Header Image/Color -->
           <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 40px 20px; text-align: center; color: white;">
-            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Next Generation of Ethical Finance Leaders</h1>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">NextIF Global Islamic Finance Career Mentorship & Accelerator Program</h1>
             <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">Nurturing the next leaders of Islamic Finance</p>
           </div>
 
           <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
             <h2 style="color: #4f46e5; margin-top: 0;">Assalamu Alaikum ${firstName},</h2>
             
-            <p style="font-size: 16px;">Your journey in the <strong>Global Islamic Finance Career Mentorship & Accelerator Program</strong> continues! We are excited to announce a new milestone in your professional development.</p>
+            <p style="font-size: 16px;">This is to notify you of the upcoming session for the <strong>NextIF Global Career Mentorship & Accelerator Program (Cohort II)</strong>.</p>
 
             <div style="background: #f8fafc; padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #4f46e5;">
               <p style="margin: 0; font-weight: 800; text-transform: uppercase; font-size: 12px; color: #64748b; letter-spacing: 1px;">Upcoming Highlight</p>
@@ -386,15 +386,16 @@ export class EmailService {
               <ul style="list-style: none; padding: 0; margin: 15px 0; color: #475569;">
                 <li style="margin-bottom: 8px;">📍 <strong>Where:</strong> <a href="${event.location}" style="color: #4f46e5; text-decoration: none;">Join Virtual Session</a></li>
                 <li style="margin-bottom: 8px;">📅 <strong>When:</strong> ${new Date(event.date).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</li>
-                <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${new Date(event.date).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}</li>
+                <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${new Date(event.date).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}${event.endDate ? ` - ${new Date(event.endDate).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}` : ''}</li>
                 <li style="margin-bottom: 8px;">🎙️ <strong>Lead Expert:</strong> ${event.speaker || "World-Renowned Innovator"}</li>
               </ul>
             </div>
 
-            <p>This is your opportunity to learn directly from founders, innovators, and experts as we explore <strong>Ethical Innovation</strong> and <strong>Shariah-aligned excellence</strong>.</p>
+            <p>Kindly clear your schedule and join early to avoid missing important discussions and activities.</p>
+            <p>We look forward to having you in the session.</p>
             
             <div style="text-align: center; margin-top: 35px;">
-              <a href="${generateGoogleCalendarLink(event.title, event.date, event.explanation || 'NextIF Mentorship Session', event.location)}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 14px;">🗓️ Add to Google Calendar</a>
+              <a href="${generateGoogleCalendarLink(event.title, event.date, event.explanation || 'NextIF Mentorship Session', event.location, event.endDate)}" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 14px;">🗓️ Add to Google Calendar</a>
             </div>
 
             <p style="margin-top: 30px; font-size: 14px; color: #64748b; font-style: italic;">"Being part of the NextIF experience means building the future of Halal Entrepreneurship across the globe."</p>
@@ -410,7 +411,7 @@ export class EmailService {
     try {
       await this.sendViaApi({
         to,
-        subject: `Assalamu Alaikum ${firstName}: New Mentorship Session - ${event.title}`,
+        subject: `Upcoming Session Notification - ${event.title}`,
         html,
       });
     } catch (error) {
@@ -600,22 +601,25 @@ export class EmailService {
     const html = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 40px 20px; text-align: center; color: white;">
-            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">New Event Scheduled</h1>
-            <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">NextIF Global Mentorship & Accelerator</p>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">NextIF Global Islamic Finance Career Mentorship & Accelerator Program</h1>
+            <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">Nurturing the next leaders of Islamic Finance</p>
           </div>
 
           <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
             <h2 style="color: #4f46e5; margin-top: 0;">Assalamu Alaikum ${firstName},</h2>
             
-            <p style="font-size: 16px;">We have scheduled a new event: <strong>${event.title}</strong>. This is part of your journey in the NextIF Accelerator.</p>
+            <p style="font-size: 16px;">This is to notify you of the upcoming session for the <strong>NextIF Global Career Mentorship & Accelerator Program (Cohort II)</strong>.</p>
 
             <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #4f46e5;">
               <ul style="list-style: none; padding: 0; margin: 0; color: #475569;">
                 <li style="margin-bottom: 8px;">📅 <strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</li>
-                <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${new Date(event.date).toLocaleTimeString()}</li>
+                <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${new Date(event.date).toLocaleTimeString()}${event.endDate ? ` - ${new Date(event.endDate).toLocaleTimeString()}` : ''}</li>
                 <li style="margin-bottom: 8px;">📍 <strong>Link:</strong> <a href="${event.location}" style="color: #4f46e5;">Join Session</a></li>
               </ul>
             </div>
+
+            <p>Kindly clear your schedule and join early to avoid missing important discussions and activities.</p>
+            <p>We look forward to having you in the session.</p>
 
             <div style="background: #fdf2f2; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #fee2e2;">
               <h3 style="margin-top: 0; color: #991b1b; font-size: 16px;">First Time Logging In?</h3>
@@ -637,7 +641,7 @@ export class EmailService {
     try {
       await this.sendViaApi({
         to,
-        subject: `New Event: ${event.title}`,
+        subject: `Upcoming Session Notification - ${event.title}`,
         html,
       });
     } catch (error) {

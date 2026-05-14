@@ -184,7 +184,7 @@ export const getSubmissions = async (req: Request, res: Response) => {
  */
 
 export const verifySubmission = async (req: Request, res: Response) => {
-  const { status, feedback } = req.body; // "COMPLETED", "REJECTED", or "REDO"
+  const { status, feedback, grade } = req.body; // "COMPLETED", "REJECTED", "REDO"
   const { id } = req.params; // Submission ID
 
   if (!["COMPLETED", "REJECTED", "REDO"].includes(status)) {
@@ -193,17 +193,28 @@ export const verifySubmission = async (req: Request, res: Response) => {
       .json({ message: "Invalid status. Use COMPLETED, REJECTED, or REDO." });
   }
 
+  // Ensure grade is provided for COMPLETED status
+  if (status === "COMPLETED" && (!grade || grade < 1 || grade > 5)) {
+    return res.status(400).json({ message: "A grade between 1 and 5 is required for verification." });
+  }
+
   const existingSubmission = await TaskSubmission.findById(id);
   if (!existingSubmission) {
     return res.status(404).json({ message: "Submission not found" });
   }
   const oldStatus = existingSubmission.status;
+  const oldPoints = (existingSubmission as any).pointsAwarded || 0;
+
+  // Points to award/deduct
+  const pointsToAward = status === "COMPLETED" ? Number(grade) : 0;
 
   const submission = await TaskSubmission.findByIdAndUpdate(
     id,
     {
       status,
       adminFeedback: feedback,
+      grade: status === "COMPLETED" ? Number(grade) : existingSubmission.grade,
+      pointsAwarded: pointsToAward,
       reviewedAt: new Date(),
       reviewedBy: req.user?.id,
     },
@@ -221,7 +232,6 @@ export const verifySubmission = async (req: Request, res: Response) => {
   try {
     const task = submission.taskId as any;
     const taskTitle = task.title;
-    const points = task.rewardPoints || 0;
     const ambassador = submission.ambassadorId as any;
 
     await Notification.create({
@@ -236,7 +246,7 @@ export const verifySubmission = async (req: Request, res: Response) => {
           : `Revision Needed: ${taskTitle}`,
       body:
         status === "COMPLETED"
-          ? `Excellent work! Your submission for "${taskTitle}" has been verified. You earned ${points} points.`
+          ? `Excellent work! Your submission for "${taskTitle}" has been verified with a Grade ${grade}/5. You earned ${pointsToAward} points.`
           : status === "REJECTED"
           ? `Your submission for "${taskTitle}" was rejected. Reason: "${feedback}"`
           : `Your submission for "${taskTitle}" requires revision. Feedback: "${feedback}"`,
@@ -244,8 +254,33 @@ export const verifySubmission = async (req: Request, res: Response) => {
       referenceId: task._id,
     });
 
-    // Send Status Emails
-    if (status === "REDO" && oldStatus !== "REDO") {
+    // Handle Point Reversal if it was COMPLETED before
+    if (oldStatus === "COMPLETED" && status !== "COMPLETED") {
+      await Ambassador.findByIdAndUpdate(ambassador._id, {
+        $inc: { points: -oldPoints },
+      });
+    }
+
+    // Award New Points
+    if (status === "COMPLETED") {
+      // If it was already completed, we subtract old points first (if they changed)
+      // but the logic above handles reversal if moving AWAY from completed.
+      // If it's STAYING completed but grade changed:
+      const pointsDiff = pointsToAward - (oldStatus === "COMPLETED" ? oldPoints : 0);
+      
+      if (pointsDiff !== 0) {
+        await Ambassador.findByIdAndUpdate(ambassador._id, {
+          $inc: { points: pointsDiff },
+        });
+      }
+
+      await EmailService.sendTaskSuccessEmail(
+        ambassador.email,
+        ambassador.firstName,
+        taskTitle,
+        pointsToAward
+      );
+    } else if (status === "REDO" && oldStatus !== "REDO") {
       await EmailService.sendTaskRedoEmail(
         ambassador.email,
         ambassador.firstName,
@@ -259,26 +294,6 @@ export const verifySubmission = async (req: Request, res: Response) => {
         taskTitle,
         feedback || "Your task submission was not accepted."
       );
-    }
-
-    // Points logic
-    if (status === "COMPLETED" && oldStatus !== "COMPLETED") {
-      // Award points to ambassador
-      await Ambassador.findByIdAndUpdate(ambassador._id, {
-        $inc: { points: points },
-      });
-
-      await EmailService.sendTaskSuccessEmail(
-        ambassador.email,
-        ambassador.firstName,
-        taskTitle,
-        points
-      );
-    } else if (oldStatus === "COMPLETED" && status !== "COMPLETED") {
-      // Reversing a previously completed task - deduct points
-      await Ambassador.findByIdAndUpdate(ambassador._id, {
-        $inc: { points: -points },
-      });
     }
   } catch (error) {
     console.error("Failed to send notification/email:", error);

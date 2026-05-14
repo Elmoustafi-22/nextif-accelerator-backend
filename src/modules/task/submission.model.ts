@@ -16,6 +16,8 @@ export interface ITaskSubmission {
   submittedAt?: Date;
   reviewedAt?: Date;
   reviewedBy?: Types.ObjectId;
+  grade?: number;
+  pointsAwarded?: number;
 }
 
 const submissionSchema = new Schema<ITaskSubmission>(
@@ -45,6 +47,8 @@ const submissionSchema = new Schema<ITaskSubmission>(
     submittedAt: Date,
     reviewedAt: Date,
     reviewedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+    grade: { type: Number, min: 1, max: 5 },
+    pointsAwarded: { type: Number, default: 0 },
   },
   {
     timestamps: true,

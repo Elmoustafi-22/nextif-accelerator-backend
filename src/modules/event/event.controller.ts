@@ -11,15 +11,17 @@ import Recording from "../recording/recording.model";
 
 export const createEvent = async (req: Request, res: Response) => {
   try {
-    const { title, description, date, location, type, speaker } = req.body;
+    const { title, description, date, endDate, location, type, speaker, recordingLinks } = req.body;
 
     const event = await Event.create({
       title,
       description,
       date,
+      endDate,
       location,
       type,
       speaker,
+      recordingLinks: recordingLinks || [],
       createdBy: req.user!.id,
     });
 
@@ -33,9 +35,7 @@ export const createEvent = async (req: Request, res: Response) => {
       "AMBASSADOR",
       "ANNOUNCEMENT",
       `New Event: ${title}`,
-      `A new event "${title}" has been scheduled for ${new Date(
-        date
-      ).toLocaleDateString()}.`,
+      `A new event "${title}" has been scheduled for ${new Date(date).toLocaleString()}${endDate ? ` - ${new Date(endDate).toLocaleTimeString()}` : ''}.`,
       location,
       event._id
     );
@@ -108,32 +108,33 @@ export const updateEvent = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Check if recordingLink was added/updated
-    if (updates.recordingLink && updates.recordingLink !== oldEvent?.recordingLink) {
-        // Auto-add/update to Recordings collection
+    // Check if recordingLinks were added/updated
+    if (updates.recordingLinks && JSON.stringify(updates.recordingLinks) !== JSON.stringify(oldEvent?.recordingLinks)) {
+        // Sync to Recordings collection (Replace the entire list of links for this event title)
         await Recording.findOneAndUpdate(
             { title: event.title },
             { 
-                $push: { links: { title: "Session Recording", url: updates.recordingLink } } 
+                links: updates.recordingLinks 
             },
             { upsert: true, setDefaultsOnInsert: true, new: true }
         );
 
-        // Notify all fellows
-        const fellows = await Ambassador.find({});
+        // Only notify if links were added for the first time or increased
+        if ((updates.recordingLinks?.length || 0) > (oldEvent?.recordingLinks?.length || 0)) {
+            // Notify all fellows
+            const fellows = await Ambassador.find({});
+            const fellowIds = fellows.map((f) => f._id);
 
-        const fellowIds = fellows.map((f) => f._id);
-
-        // System Notification
-        await NotificationService.broadcast(
-            fellowIds,
-            "AMBASSADOR",
-            "ANNOUNCEMENT",
-            `Recording Available: ${event.title}`,
-            `The recording for "${event.title}" is now available.`,
-            event.recordingLink,
-            event._id
-        );
+            // System Notification
+            await NotificationService.broadcast(
+                fellowIds,
+                "AMBASSADOR",
+                "ANNOUNCEMENT",
+                `Recordings Available: ${event.title}`,
+                `The recordings for "${event.title}" are now available on your dashboard.`,
+                undefined,
+                event._id
+            );
 
         // Email Notification for fellows - Fire and forget
         fellows.forEach((fellow) => {
@@ -174,6 +175,7 @@ export const updateEvent = async (req: Request, res: Response) => {
             });
         } catch (adminErr) {
             console.error("Failed to fetch admins for recording notification:", adminErr);
+        }
         }
     }
 
