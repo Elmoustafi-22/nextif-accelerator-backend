@@ -665,6 +665,62 @@ export const bulkOnboardAmbassadors = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Error parsing CSV", error });
   }
 };
+
+export const exportAmbassadors = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    const ambassadors = await Ambassador.find({}).sort({ createdAt: -1 });
+
+    const headers = [
+      "First Name",
+      "Last Name",
+      "Email",
+      "Account Status",
+      "Institution",
+      "Course of Study",
+      "Joined Date",
+    ];
+
+    const rows = ambassadors.map((amb) => [
+      amb.firstName,
+      amb.lastName,
+      amb.email,
+      amb.accountStatus,
+      amb.profile?.institution || "",
+      amb.profile?.courseOfStudy || "",
+      new Date(amb.createdAt).toLocaleDateString(),
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row
+          .map((cell) => {
+            const str = String(cell).replace(/"/g, '""');
+            return str.includes(",") || str.includes('"') || str.includes("\n")
+              ? `"${str}"`
+              : str;
+          })
+          .join(",")
+      ),
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=fellows_export_${new Date()
+        .toISOString()
+        .split("T")[0]}.csv`
+    );
+
+    res.send(csvContent);
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).json({ message: "Failed to export data" });
+  }
+};
+
 export const forceResetAmbassadorPassword = async (
   req: Request,
   res: Response

@@ -186,7 +186,7 @@ export class EmailService {
             <p style="margin: 0; font-weight: bold;">Task Details:</p>
             <ul style="margin: 10px 0;">
               <li><strong>Title:</strong> ${taskTitle}</li>
-              <li><strong>Due Date:</strong> ${dueDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} @ ${dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</li>
+              <li><strong>Due Date:</strong> ${dueDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Lagos' })} @ ${dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Africa/Lagos' })} WAT (${dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' })} GMT)</li>
             </ul>
           </div>
           
@@ -385,8 +385,8 @@ export class EmailService {
               
               <ul style="list-style: none; padding: 0; margin: 15px 0; color: #475569;">
                 <li style="margin-bottom: 8px;">📍 <strong>Where:</strong> <a href="${event.location}" style="color: #4f46e5; text-decoration: none;">Join Virtual Session</a></li>
-                <li style="margin-bottom: 8px;">📅 <strong>When:</strong> ${new Date(event.date).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</li>
-                <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${new Date(event.date).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}${event.endDate ? ` - ${new Date(event.endDate).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}` : ''}</li>
+                <li style="margin-bottom: 8px;">📅 <strong>When:</strong> ${new Date(event.date).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Lagos' })}</li>
+                <li style="margin-bottom: 8px;">⏰ <strong>Time:</strong> ${new Date(event.date).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' })} WAT (${new Date(event.date).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} GMT)${event.endDate ? ` - ${new Date(event.endDate).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' })} WAT (${new Date(event.endDate).toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} GMT)` : ''}</li>
                 <li style="margin-bottom: 8px;">🎙️ <strong>Lead Expert:</strong> ${event.speaker || "World-Renowned Innovator"}</li>
               </ul>
             </div>
@@ -669,7 +669,7 @@ export class EmailService {
             <ul style="margin: 10px 0; color: #334155;">
               <li><strong>Title:</strong> ${event.title}</li>
               <li><strong>Type:</strong> ${event.type}</li>
-              <li><strong>Date:</strong> ${new Date(event.date).toLocaleString()}</li>
+              <li><strong>Date:</strong> ${new Date(event.date).toLocaleString('en-US', { timeZone: 'Africa/Lagos' })} WAT (${new Date(event.date).toLocaleString('en-US', { timeZone: 'UTC' })} GMT)</li>
             </ul>
           </div>
           
@@ -707,7 +707,7 @@ export class EmailService {
             <p style="margin: 0; font-weight: bold; color: #1e293b;">Event Details:</p>
             <ul style="margin: 10px 0; color: #334155;">
               <li><strong>Title:</strong> ${event.title}</li>
-              <li><strong>Date:</strong> ${new Date(event.date).toLocaleString()}</li>
+              <li><strong>Date:</strong> ${new Date(event.date).toLocaleString('en-US', { timeZone: 'Africa/Lagos' })} WAT (${new Date(event.date).toLocaleString('en-US', { timeZone: 'UTC' })} GMT)</li>
             </ul>
           </div>
 

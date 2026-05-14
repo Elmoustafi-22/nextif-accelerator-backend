@@ -23,6 +23,7 @@ import {
   getAdminById,
   sendAdminMessage,
   getLeaderboard,
+  exportAmbassadors,
 } from "./admin.controller";
 
 const adminRouter = Router();
@@ -55,6 +56,7 @@ adminRouter.post(
   csvUpload.single("file"),
   bulkOnboardAmbassadors
 ); // Bulk Import
+adminRouter.get("/ambassadors/export", exportAmbassadors);
 adminRouter.get("/ambassadors", getAllAmbassadors);
 adminRouter.post(
   "/ambassadors",

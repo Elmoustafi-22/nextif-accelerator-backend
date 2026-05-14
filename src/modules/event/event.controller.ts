@@ -35,7 +35,7 @@ export const createEvent = async (req: Request, res: Response) => {
       "AMBASSADOR",
       "ANNOUNCEMENT",
       `New Event: ${title}`,
-      `A new event "${title}" has been scheduled for ${new Date(date).toLocaleString()}${endDate ? ` - ${new Date(endDate).toLocaleTimeString()}` : ''}.`,
+      `A new event "${title}" has been scheduled for ${new Date(date).toLocaleString("en-US", { timeZone: "Africa/Lagos" })} WAT (${new Date(date).toLocaleString("en-US", { timeZone: "UTC" })} GMT)${endDate ? ` - ${new Date(endDate).toLocaleTimeString("en-US", { timeZone: "Africa/Lagos" })} WAT (${new Date(endDate).toLocaleTimeString("en-US", { timeZone: "UTC" })} GMT)` : ''}.`,
       location,
       event._id
     );
