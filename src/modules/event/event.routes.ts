@@ -11,6 +11,7 @@ import {
   markBulkAttendance,
   getEventAttendance,
   getMyAttendance,
+  resendEventNotifications,
 } from "./event.controller";
 
 const eventRouter = Router();
@@ -27,6 +28,7 @@ eventRouter.get("/:id", getEventById);
 eventRouter.post("/", role(["ADMIN"]), createEvent);
 eventRouter.patch("/:id", role(["ADMIN"]), updateEvent);
 eventRouter.delete("/:id", role(["ADMIN"]), deleteEvent);
+eventRouter.post("/:id/resend-notifications", role(["ADMIN"]), resendEventNotifications);
 
 // Attendance Management (Admin)
 eventRouter.get("/:eventId/attendance", role(["ADMIN"]), getEventAttendance);

@@ -203,6 +203,86 @@ export const deleteEvent = async (req: Request, res: Response) => {
   }
 };
 
+export const resendEventNotifications = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const event = await Event.findById(id);
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Notify all fellows
+    const fellows = await Ambassador.find({});
+    const fellowIds = fellows.map((f) => f._id);
+
+    // System Notification
+    await NotificationService.broadcast(
+      fellowIds,
+      "AMBASSADOR",
+      "ANNOUNCEMENT",
+      `Event Reminder: ${event.title}`,
+      `This is a reminder for the event "${event.title}" scheduled for ${new Date(event.date).toLocaleString("en-US", { timeZone: "Africa/Lagos" })} WAT (${new Date(event.date).toLocaleString("en-US", { timeZone: "UTC" })} GMT)${event.endDate ? ` - ${new Date(event.endDate).toLocaleTimeString("en-US", { timeZone: "Africa/Lagos" })} WAT (${new Date(event.endDate).toLocaleTimeString("en-US", { timeZone: "UTC" })} GMT)` : ''}.`,
+      event.location,
+      event._id
+    );
+
+    // Email Notification - Fire and forget
+    fellows.forEach((fellow) => {
+      if (fellow.accountStatus === "ACTIVE") {
+        EmailService.sendEventNotificationEmail(
+          fellow.email,
+          fellow.firstName,
+          event
+        ).catch((err) =>
+          console.error(`Failed to resend email to ${fellow.email}:`, err)
+        );
+      } else {
+        EmailService.sendEventNotificationPreloadedEmail(
+          fellow.email,
+          fellow.firstName,
+          fellow.lastName,
+          event
+        ).catch((err) =>
+          console.error(`Failed to resend preloaded email to ${fellow.email}:`, err)
+        );
+      }
+    });
+
+    // Notify all admins
+    try {
+      const admins = await Admin.find({});
+      const creator = await Admin.findById(event.createdBy);
+      const creatorName = creator ? `${creator.firstName} ${creator.lastName}` : "An Admin";
+
+      admins.forEach((admin) => {
+        if (admin.accountStatus === "ACTIVE") {
+          EmailService.sendAdminEventNotificationEmail(
+            admin.email,
+            admin.firstName,
+            event,
+            creatorName
+          ).catch((err) => console.error(`Failed to notify admin ${admin.email}:`, err));
+        } else {
+          EmailService.sendAdminEventNotificationPreloadedEmail(
+            admin.email,
+            admin.firstName,
+            admin.lastName,
+            event,
+            creatorName
+          ).catch((err) => console.error(`Failed to notify preloaded admin ${admin.email}:`, err));
+        }
+      });
+    } catch (adminErr) {
+      console.error("Failed to fetch admins for resend notification:", adminErr);
+    }
+
+    res.json({ message: "Notifications resent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error resending notifications", error });
+  }
+};
+
 // --- Helper to get events with attendance status for a user ---
 
 export const getEvents = async (req: Request, res: Response) => {
