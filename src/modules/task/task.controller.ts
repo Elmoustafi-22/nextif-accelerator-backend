@@ -194,6 +194,8 @@ export const exportSubmissionsReport = async (req: Request, res: Response) => {
     // Create a map for quick lookup: ambassadorId -> taskId -> points
     const scoreMap: Record<string, Record<string, number>> = {};
     submissions.forEach((sub) => {
+      if (!sub.ambassadorId || !sub.taskId) return; // Skip if ambassador or task is missing
+
       const ambassadorId = sub.ambassadorId.toString();
       const taskId = (sub.taskId as any)._id.toString();
       const points = sub.pointsAwarded || (sub.taskId as any).rewardPoints || 0;
