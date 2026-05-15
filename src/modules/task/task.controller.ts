@@ -189,17 +189,19 @@ export const exportSubmissionsReport = async (req: Request, res: Response) => {
     const submissions = await TaskSubmission.find(
       { status: "COMPLETED" },
       "ambassadorId taskId pointsAwarded"
-    );
+    ).populate("taskId", "rewardPoints");
 
     // Create a map for quick lookup: ambassadorId -> taskId -> points
     const scoreMap: Record<string, Record<string, number>> = {};
     submissions.forEach((sub) => {
       const ambassadorId = sub.ambassadorId.toString();
-      const taskId = sub.taskId.toString();
+      const taskId = (sub.taskId as any)._id.toString();
+      const points = sub.pointsAwarded || (sub.taskId as any).rewardPoints || 0;
+      
       if (!scoreMap[ambassadorId]) {
         scoreMap[ambassadorId] = {};
       }
-      scoreMap[ambassadorId][taskId] = sub.pointsAwarded || 0;
+      scoreMap[ambassadorId][taskId] = points;
     });
 
     // Prepare CSV Content

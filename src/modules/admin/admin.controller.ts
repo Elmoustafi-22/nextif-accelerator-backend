@@ -238,7 +238,15 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       {
         $group: {
           _id: "$ambassadorId",
-          points: { $sum: "$task.rewardPoints" },
+          points: {
+            $sum: {
+              $cond: {
+                if: { $gt: ["$pointsAwarded", 0] },
+                then: "$pointsAwarded",
+                else: "$task.rewardPoints",
+              },
+            },
+          },
         },
       },
     ]);
