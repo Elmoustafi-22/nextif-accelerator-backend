@@ -179,6 +179,63 @@ export const getSubmissions = async (req: Request, res: Response) => {
   res.json(submissions);
 };
 
+export const exportSubmissionsReport = async (req: Request, res: Response) => {
+  try {
+    const [fellows, tasks] = await Promise.all([
+      Ambassador.find({}, "firstName lastName email").sort({ firstName: 1 }),
+      Task.find({}, "title").sort({ dueDate: 1 }),
+    ]);
+
+    const submissions = await TaskSubmission.find(
+      { status: "COMPLETED" },
+      "ambassadorId taskId pointsAwarded"
+    );
+
+    // Create a map for quick lookup: ambassadorId -> taskId -> points
+    const scoreMap: Record<string, Record<string, number>> = {};
+    submissions.forEach((sub) => {
+      const ambassadorId = sub.ambassadorId.toString();
+      const taskId = sub.taskId.toString();
+      if (!scoreMap[ambassadorId]) {
+        scoreMap[ambassadorId] = {};
+      }
+      scoreMap[ambassadorId][taskId] = sub.pointsAwarded || 0;
+    });
+
+    // Prepare CSV Content
+    let csvContent =
+      "Name," +
+      tasks.map((t) => `"${t.title.replace(/"/g, '""')}"`).join(",") +
+      ",Total Points\n";
+
+    fellows.forEach((fellow) => {
+      const fellowId = fellow._id.toString();
+      let row = `"${fellow.firstName} ${fellow.lastName}"`;
+      let totalPoints = 0;
+
+      tasks.forEach((task) => {
+        const taskId = task._id.toString();
+        const points = scoreMap[fellowId]?.[taskId] || 0;
+        row += `,${points}`;
+        totalPoints += points;
+      });
+
+      row += `,${totalPoints}\n`;
+      csvContent += row;
+    });
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=task_performance_report.csv"
+    );
+    res.status(200).send(csvContent);
+  } catch (error) {
+    console.error("Export Error:", error);
+    res.status(500).json({ message: "Error generating export", error });
+  }
+};
+
 /**
  * ADMIN: SUBMISSION VERIFICATION
  */

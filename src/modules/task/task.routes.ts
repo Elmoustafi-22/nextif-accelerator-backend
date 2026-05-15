@@ -9,6 +9,7 @@ import {
   getMyTasks,
   submitTask,
   getSubmissions,
+  exportSubmissionsReport,
 } from "./task.controller";
 import { protect } from "../../middlewares/auth.middleware";
 import { role } from "../../middlewares/roles.middleware";
@@ -25,6 +26,7 @@ const taskRouter = Router();
 taskRouter.use(protect);
 
 // ADMIN ROUTES (Specific routes first)
+taskRouter.get("/submissions/export", role(["ADMIN"]), exportSubmissionsReport);
 taskRouter.get("/submissions", role(["ADMIN"]), getSubmissions);
 taskRouter.patch("/submissions/:id/verify", role(["ADMIN"]), verifySubmission);
 
