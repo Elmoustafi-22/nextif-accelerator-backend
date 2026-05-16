@@ -5,6 +5,7 @@ import Admin from "../admin/admin.model";
 import { NotificationService } from "../notification/notification.service";
 import { EmailService } from "../../utils/email.service";
 import { env } from "../../config/env";
+import { transformToEmbedUrl } from "../../utils/video.util";
 
 export const getRecordings = async (req: Request, res: Response) => {
   try {
@@ -17,7 +18,16 @@ export const getRecordings = async (req: Request, res: Response) => {
 
 export const createRecording = async (req: Request, res: Response) => {
   try {
-    const { title, description, links } = req.body;
+    let { title, description, links } = req.body;
+
+    // Transform video links to embed format
+    if (links && Array.isArray(links)) {
+      links = links.map((link: any) => ({
+        ...link,
+        url: transformToEmbedUrl(link.url),
+      }));
+    }
+
     const recording = await Recording.create({ title, description, links });
 
     // --- Notification Logic ---
@@ -117,7 +127,15 @@ export const deleteRecording = async (req: Request, res: Response) => {
 export const updateRecording = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, description, links } = req.body;
+    let { title, description, links } = req.body;
+
+    // Transform video links to embed format
+    if (links && Array.isArray(links)) {
+      links = links.map((link: any) => ({
+        ...link,
+        url: transformToEmbedUrl(link.url),
+      }));
+    }
 
     const recording = await Recording.findByIdAndUpdate(
       id,

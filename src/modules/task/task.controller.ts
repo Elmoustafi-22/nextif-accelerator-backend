@@ -5,6 +5,7 @@ import Notification from "../notification/notification.model";
 import Ambassador from "../ambassador/ambassador.model";
 import { EmailService } from "../../utils/email.service";
 import { Types } from "mongoose";
+import { transformToEmbedUrl } from "../../utils/video.util";
 
 /**
  * SHARED: TASK VIEWING
@@ -44,7 +45,7 @@ export const getTaskById = async (req: Request, res: Response) => {
  */
 
 export const createTask = async (req: Request, res: Response) => {
-  const {
+  let {
     title,
     explanation,
     type,
@@ -57,6 +58,14 @@ export const createTask = async (req: Request, res: Response) => {
     whatToDo,
     materials,
   } = req.body;
+
+  // Transform video materials to embed format
+  if (materials && Array.isArray(materials)) {
+    materials = materials.map((m: any) => ({
+      ...m,
+      url: m.type === "VIDEO" ? transformToEmbedUrl(m.url) : m.url,
+    }));
+  }
 
   const task = await Task.create({
     title,
@@ -108,6 +117,14 @@ export const updateTask = async (req: Request, res: Response) => {
 
   const oldAssignedTo = oldTask.assignedTo.map((id) => id.toString());
   const newAssignedTo = req.body.assignedTo || [];
+
+  // Transform video materials to embed format
+  if (req.body.materials && Array.isArray(req.body.materials)) {
+    req.body.materials = req.body.materials.map((m: any) => ({
+      ...m,
+      url: m.type === "VIDEO" ? transformToEmbedUrl(m.url) : m.url,
+    }));
+  }
 
   // Find newly assigned mentees who weren't assigned before
   const newlyAssigned = newAssignedTo.filter(
