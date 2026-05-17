@@ -5,9 +5,11 @@ import { getPriceByIP } from "../../utils/payment.util";
 import Payment from "./payment.model";
 import Ambassador from "../ambassador/ambassador.model";
 import crypto from "crypto";
+import { env } from "../../config/env";
 
 export const getPaymentConfig = async (req: Request, res: Response) => {
   const clientIp = requestIp.getClientIp(req) || "127.0.0.1";
+  console.log(`[Payment] Config request from IP: ${clientIp}`);
   const config = getPriceByIP(clientIp);
   res.json(config);
 };
@@ -15,33 +17,43 @@ export const getPaymentConfig = async (req: Request, res: Response) => {
 export const initializePayment = async (req: Request, res: Response) => {
   try {
     const ambassadorId = req.user?.id;
+    console.log(`[Payment] Initializing payment for ambassador: ${ambassadorId}`);
+
     if (!ambassadorId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
     const ambassador = await Ambassador.findById(ambassadorId);
     if (!ambassador) {
+      console.error(`[Payment] Ambassador not found: ${ambassadorId}`);
       return res.status(404).json({ message: "Ambassador not found" });
     }
 
     const clientIp = requestIp.getClientIp(req) || "127.0.0.1";
     const { currency, amount, displayPrice } = getPriceByIP(clientIp);
+    console.log(`[Payment] IP: ${clientIp}, Currency: ${currency}, Amount: ${amount}`);
 
-    const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+    const paystackSecret = env.PAYSTACK_SECRET_KEY;
     if (!paystackSecret) {
-      return res.status(500).json({ message: "Payment service not configured" });
+      console.error("[Payment] PAYSTACK_SECRET_KEY is missing in env");
+      return res.status(500).json({ message: "Payment service not configured on server" });
     }
 
     const reference = `CERT-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+    
+    // Use callback URL from env if available, else fallback to frontend reports page
+    const callback_url = env.PAYSTACK_CALLBACK_URL || `${env.FRONTEND_URL}/reports?payment=success`;
 
-    const response = await axios.post(
+    console.log(`[Payment] Calling Paystack API with reference: ${reference}`);
+
+    const paystackResponse = await axios.post(
       "https://api.paystack.co/transaction/initialize",
       {
         email: ambassador.email,
         amount: amount,
         currency: currency,
         reference: reference,
-        callback_url: `${process.env.FRONTEND_URL}/reports?payment=success`,
+        callback_url: callback_url,
         metadata: {
           ambassadorId: ambassadorId,
           paymentType: "CERTIFICATE",
@@ -56,7 +68,9 @@ export const initializePayment = async (req: Request, res: Response) => {
       }
     );
 
-    if (response.data.status) {
+    console.log("[Payment] Paystack response status:", paystackResponse.data.status);
+
+    if (paystackResponse.data.status) {
       // Save pending payment to DB
       await Payment.create({
         ambassadorId,
@@ -68,16 +82,23 @@ export const initializePayment = async (req: Request, res: Response) => {
         metadata: { displayPrice },
       });
 
+      console.log(`[Payment] Pending payment created. Redirecting to: ${paystackResponse.data.data.authorization_url}`);
+
       return res.json({
-        checkout_url: response.data.data.authorization_url,
+        checkout_url: paystackResponse.data.data.authorization_url,
         reference: reference,
       });
     } else {
-      return res.status(400).json({ message: "Failed to initialize payment" });
+      console.error("[Payment] Paystack initialization failed:", paystackResponse.data.message);
+      return res.status(400).json({ message: paystackResponse.data.message || "Failed to initialize payment" });
     }
   } catch (error: any) {
-    console.error("Payment Initialization Error:", error.response?.data || error.message);
-    res.status(500).json({ message: "Internal server error during payment initialization" });
+    const errorData = error.response?.data || error.message;
+    console.error("[Payment] Initialization Error:", errorData);
+    res.status(500).json({ 
+      message: "Internal server error during payment initialization",
+      details: env.NODE_ENV === 'development' ? errorData : undefined
+    });
   }
 };
 
