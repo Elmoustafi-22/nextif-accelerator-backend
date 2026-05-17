@@ -7,6 +7,7 @@ import notificationRouter from "./modules/notification/notification.routes";
 import complaintRouter from "./modules/complaint/complaint.routes";
 import eventRouter from "./modules/event/event.routes";
 import recordingRouter from "./modules/recording/recording.routes";
+import paymentRouter from "./modules/payment/payment.routes";
 
 const router = Router();
 
@@ -26,5 +27,7 @@ router.use("/complaints", complaintRouter);
 router.use("/events", eventRouter);
 // Mount Recording Routes
 router.use("/recordings", recordingRouter);
+// Mount Payment Routes
+router.use("/payments", paymentRouter);
 
 export default router;
