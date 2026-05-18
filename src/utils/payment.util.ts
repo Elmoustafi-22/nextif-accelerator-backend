@@ -19,10 +19,17 @@ export const getPriceByIP = (ip: string): PriceConfig => {
       displayPrice: "₦20,000",
     };
   } else {
+    // If USD is not supported by the merchant Paystack integration, 
+    // we process the transaction in NGN at the converted rate.
+    // Standard exchange rate of 1 USD = 1,500 NGN.
+    const exchangeRate = 1500;
+    const usdAmount = 30; // $30 USD
+    const ngnAmount = usdAmount * exchangeRate; // 45,000 NGN
+
     return {
-      currency: "USD",
-      amount: 30 * 100, // 30 Dollars in Cents
-      displayPrice: "$30",
+      currency: "NGN", // Charged in NGN to avoid Paystack integration issues
+      amount: ngnAmount * 100, // 45,000 Naira in Kobo
+      displayPrice: `$30 (₦${ngnAmount.toLocaleString()})`, // Display the conversion to the user
     };
   }
 };
