@@ -22,6 +22,7 @@ export interface ITask {
     type: "VIDEO" | "PDF" | "LINK";
   }[];
   createdBy: Types.ObjectId | IAdmin;
+  assignedAdmin?: Types.ObjectId | IAdmin;
 }
 
 const taskSchema = new Schema<ITask>(
@@ -59,6 +60,7 @@ const taskSchema = new Schema<ITask>(
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
+    assignedAdmin: { type: Schema.Types.ObjectId, ref: "Admin" },
   },
   {
     timestamps: true,

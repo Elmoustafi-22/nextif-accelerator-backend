@@ -54,6 +54,7 @@ export const createTaskSchema = z.object({
         })
       )
       .optional(),
+    assignedAdmin: z.string().optional(),
   }),
 });
 

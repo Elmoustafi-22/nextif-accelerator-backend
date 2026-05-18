@@ -139,3 +139,28 @@ export const paystackWebhook = async (req: Request, res: Response) => {
     res.sendStatus(500);
   }
 };
+
+export const getPaymentRecords = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    const Admin = require("../admin/admin.model").default;
+    const admin = await Admin.findById(req.user.id);
+    if (!admin) {
+      return res.status(403).json({ message: "Forbidden: Admin profile not found" });
+    }
+    const titleLower = (admin.title || "").toLowerCase().trim();
+    const isSuper = titleLower === "tech lead" || titleLower === "ceo" || titleLower === "chief executive officer";
+    if (!isSuper) {
+      return res.status(403).json({ message: "Forbidden: Super Admin privileges required" });
+    }
+
+    const payments = await Payment.find()
+      .populate("ambassadorId", "firstName lastName email")
+      .sort({ createdAt: -1 });
+
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching payment records", error });
+  }
+};

@@ -12,10 +12,9 @@ import { transformToEmbedUrl } from "../../utils/video.util";
  */
 
 export const getTaskById = async (req: Request, res: Response) => {
-  const task = await Task.findById(req.params.id).populate(
-    "createdBy",
-    "firstName lastName"
-  );
+  const task = await Task.findById(req.params.id)
+    .populate("createdBy", "firstName lastName")
+    .populate("assignedAdmin", "firstName lastName email title");
   if (!task) {
     return res.status(404).json({ message: "Task not found" });
   }
@@ -67,7 +66,7 @@ export const createTask = async (req: Request, res: Response) => {
     }));
   }
 
-  const task = await Task.create({
+  const taskData: any = {
     title,
     explanation,
     type,
@@ -80,7 +79,13 @@ export const createTask = async (req: Request, res: Response) => {
     whatToDo: whatToDo || [],
     materials: materials || [],
     createdBy: new Types.ObjectId(req.user!.id),
-  });
+  };
+
+  if (req.body.assignedAdmin) {
+    taskData.assignedAdmin = new Types.ObjectId(req.body.assignedAdmin);
+  }
+
+  const task = await Task.create(taskData);
 
   res.status(201).json(task);
 
@@ -105,6 +110,7 @@ export const createTask = async (req: Request, res: Response) => {
 export const getAllTasks = async (req: Request, res: Response) => {
   const tasks = await Task.find()
     .populate("createdBy", "firstName lastName")
+    .populate("assignedAdmin", "firstName lastName email title")
     .sort({ createdAt: -1 });
   res.json(tasks);
 };
@@ -392,6 +398,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
     assignedTo: req.user.id,
   })
     .populate("createdBy", "firstName lastName")
+    .populate("assignedAdmin", "firstName lastName email title")
     .sort({ dueDate: 1 });
 
   // 2. Get submissions for these tasks by this ambassador

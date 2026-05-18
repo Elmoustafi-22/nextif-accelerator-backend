@@ -23,6 +23,7 @@ export interface IAmbassador {
     facebook?: string | undefined;
     hasPaidCertificate?: boolean | undefined;
     certificatePaymentDate?: Date | undefined;
+    certificateUrl?: string | undefined;
   };
   points: number;
   createdAt: Date;
@@ -62,6 +63,7 @@ const ambassadorSchema = new Schema<IAmbassador>(
       facebook: String,
       hasPaidCertificate: { type: Boolean, default: false },
       certificatePaymentDate: Date,
+      certificateUrl: String,
     },
     points: { type: Number, default: 0 },
   },

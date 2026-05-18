@@ -126,25 +126,48 @@ export const updateAdminProfile = async (req: Request, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-  const { firstName, lastName, title, avatar } = req.body;
-  const admin = await Admin.findByIdAndUpdate(
-    req.user.id,
-    { firstName, lastName, title, avatar },
-    { new: true, runValidators: true }
-  );
-  if (!admin) {
-    return res.status(404).json({ message: "Admin not found" });
+  
+  try {
+    const currentAdmin = await Admin.findById(req.user.id);
+    if (!currentAdmin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    const { firstName, lastName, title, avatar } = req.body;
+
+    if (title) {
+      const requestedTitleLower = title.toLowerCase().trim();
+      const isCEOorTechLead = requestedTitleLower === "ceo" || requestedTitleLower === "tech lead" || requestedTitleLower === "chief executive officer";
+      
+      const currentTitleLower = (currentAdmin.title || "").toLowerCase().trim();
+      const wasAlreadyCEOorTechLead = currentTitleLower === "ceo" || currentTitleLower === "tech lead" || currentTitleLower === "chief executive officer";
+
+      if (isCEOorTechLead && !wasAlreadyCEOorTechLead) {
+        return res.status(403).json({ message: "You do not have permission to elevate your title to CEO or Tech Lead." });
+      }
+    }
+
+    const admin = await Admin.findByIdAndUpdate(
+      req.user.id,
+      { firstName, lastName, title, avatar },
+      { new: true, runValidators: true }
+    );
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+    res.json({
+      id: admin._id.toString(),
+      email: admin.email,
+      role: "admin",
+      firstName: admin.firstName,
+      lastName: admin.lastName,
+      title: admin.title,
+      avatar: admin.avatar,
+      isFirstLogin: !admin.passwordSet,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating profile", error });
   }
-  res.json({
-    id: admin._id.toString(),
-    email: admin.email,
-    role: "admin",
-    firstName: admin.firstName,
-    lastName: admin.lastName,
-    title: admin.title,
-    avatar: admin.avatar,
-    isFirstLogin: !admin.passwordSet,
-  });
 };
 
 export const changeAdminPassword = async (req: Request, res: Response) => {
@@ -872,4 +895,46 @@ export const sendAdminMessage = async (req: Request, res: Response) => {
   );
 
   res.status(201).json(notification);
+};
+
+export const deleteAdmin = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    if (req.user.id === req.params.id) {
+      return res.status(400).json({ message: "You cannot delete your own admin account" });
+    }
+
+    const admin = await Admin.findByIdAndDelete(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+    res.json({ message: "Admin deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting admin", error });
+  }
+};
+
+export const uploadAmbassadorCertificate = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+  if (!req.file) {
+    return res.status(400).json({ message: "Please upload a certificate file" });
+  }
+
+  try {
+    const ambassador = await Ambassador.findById(req.params.id);
+    if (!ambassador) {
+      return res.status(404).json({ message: "Ambassador not found" });
+    }
+
+    ambassador.profile.certificateUrl = req.file.path || (req.file as any).secure_url;
+    await ambassador.save();
+
+    res.json({
+      message: "Certificate uploaded successfully",
+      certificateUrl: ambassador.profile.certificateUrl,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error uploading certificate", error });
+  }
 };

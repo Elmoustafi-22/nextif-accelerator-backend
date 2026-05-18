@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { protect } from "../../middlewares/auth.middleware";
+import { protect, requireSuperAdmin } from "../../middlewares/auth.middleware";
 import { role } from "../../middlewares/roles.middleware";
 import { upload, csvUpload } from "../../middlewares/upload.middleware";
 import { validate } from "../../middlewares/validation.middleware";
@@ -24,6 +24,8 @@ import {
   sendAdminMessage,
   getLeaderboard,
   exportAmbassadors,
+  deleteAdmin,
+  uploadAmbassadorCertificate,
 } from "./admin.controller";
 
 const adminRouter = Router();
@@ -48,6 +50,7 @@ adminRouter.post("/announcements", sendAnnouncement);
 // Admin Directory & Internal Messaging
 adminRouter.get("/list", getAllAdmins); // /api/v1/admin/list
 adminRouter.get("/list/:id", getAdminById);
+adminRouter.delete("/list/:id", requireSuperAdmin, deleteAdmin);
 adminRouter.post("/internal-messages", sendAdminMessage);
 
 // Ambassador Management (Admin View)
@@ -67,6 +70,12 @@ adminRouter.get("/ambassadors/:id", getAmbassadorById);
 adminRouter.patch("/ambassadors/:id", updateAmbassador);
 adminRouter.patch("/ambassadors/:id/status", updateAmbassadorStatus);
 adminRouter.post("/ambassadors/:id/force-reset", forceResetAmbassadorPassword);
+adminRouter.post(
+  "/ambassadors/:id/certificate",
+  requireSuperAdmin,
+  upload.single("file"),
+  uploadAmbassadorCertificate
+);
 adminRouter.delete("/ambassadors/:id", deleteAmbassador);
 
 export default adminRouter;
