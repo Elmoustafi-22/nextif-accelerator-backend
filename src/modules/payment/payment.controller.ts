@@ -140,6 +140,70 @@ export const paystackWebhook = async (req: Request, res: Response) => {
   }
 };
 
+export const verifyPayment = async (req: Request, res: Response) => {
+  try {
+    const { reference } = req.params;
+    if (!reference) {
+      return res.status(400).json({ message: "Reference is required" });
+    }
+
+    const paystackSecret = env.PAYSTACK_SECRET_KEY;
+    if (!paystackSecret) {
+      return res.status(500).json({ message: "Payment service not configured" });
+    }
+
+    // Look up payment in our DB
+    const payment = await Payment.findOne({ reference });
+    if (!payment) {
+      return res.status(404).json({ message: "Payment record not found" });
+    }
+
+    // If already marked SUCCESS, no need to re-verify
+    if (payment.status === "SUCCESS") {
+      return res.json({ status: "SUCCESS", message: "Payment already verified" });
+    }
+
+    // Call Paystack's verify endpoint
+    console.log(`[Payment] Verifying reference with Paystack: ${reference}`);
+    const paystackResponse = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${paystackSecret}`,
+        },
+      }
+    );
+
+    const paystackData = paystackResponse.data?.data;
+    console.log(`[Payment] Paystack verification status: ${paystackData?.status}`);
+
+    if (paystackData?.status === "success") {
+      // Update payment status
+      payment.status = "SUCCESS";
+      await payment.save();
+
+      // Update Ambassador to mark certificate as paid
+      await Ambassador.findByIdAndUpdate(payment.ambassadorId, {
+        $set: { "profile.hasPaidCertificate": true, "profile.certificatePaymentDate": new Date() }
+      });
+
+      console.log(`[Payment] Verified and updated payment for Ambassador: ${payment.ambassadorId}`);
+      return res.json({ status: "SUCCESS", message: "Payment verified successfully" });
+    } else if (paystackData?.status === "failed") {
+      payment.status = "FAILED";
+      await payment.save();
+      return res.json({ status: "FAILED", message: "Payment failed" });
+    } else {
+      // Still pending on Paystack's side (e.g. abandoned)
+      return res.json({ status: "PENDING", message: "Payment is still pending" });
+    }
+  } catch (error: any) {
+    const errorData = error.response?.data || error.message;
+    console.error("[Payment] Verification Error:", errorData);
+    res.status(500).json({ message: "Error verifying payment" });
+  }
+};
+
 export const getPaymentRecords = async (req: Request, res: Response) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
