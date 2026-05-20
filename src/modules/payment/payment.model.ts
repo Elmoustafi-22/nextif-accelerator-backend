@@ -8,6 +8,7 @@ export interface IPayment {
   status: "PENDING" | "SUCCESS" | "FAILED";
   paymentType: "CERTIFICATE";
   metadata: any;
+  receiptUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +43,9 @@ const paymentSchema = new Schema<IPayment>(
       type: String,
       enum: ["CERTIFICATE"],
       default: "CERTIFICATE",
+    },
+    receiptUrl: {
+      type: String,
     },
     metadata: {
       type: Object,

@@ -6,6 +6,49 @@ import Payment from "./payment.model";
 import Ambassador from "../ambassador/ambassador.model";
 import crypto from "crypto";
 import { env } from "../../config/env";
+import { generateReceiptPDF, uploadReceiptToCloudinary } from "../../utils/receipt.util";
+
+/**
+ * Shared logic to process a successful payment:
+ * 1. Updates status to SUCCESS
+ * 2. Generates receipt PDF
+ * 3. Uploads receipt to Cloudinary
+ * 4. Stores receipt URL in the payment record
+ * 5. Marks Ambassador's certificate as paid
+ */
+export const processSuccessfulPayment = async (reference: string, ambassadorId: string) => {
+  const payment = await Payment.findOne({ reference });
+  if (!payment) return null;
+
+  if (payment.status !== "SUCCESS") {
+    payment.status = "SUCCESS";
+
+    try {
+      const ambassador = await Ambassador.findById(ambassadorId);
+      if (ambassador) {
+        console.log(`[Payment] Generating receipt for ambassador: ${ambassadorId}`);
+        const pdfBuffer = await generateReceiptPDF(payment, ambassador);
+        const receiptUrl = await uploadReceiptToCloudinary(pdfBuffer, reference);
+        if (receiptUrl) {
+          payment.receiptUrl = receiptUrl;
+        }
+      }
+    } catch (receiptError) {
+      console.error("[Payment] Error generating or uploading receipt:", receiptError);
+    }
+
+    await payment.save();
+
+    // Update Ambassador to mark certificate as paid
+    await Ambassador.findByIdAndUpdate(ambassadorId, {
+      $set: { "profile.hasPaidCertificate": true, "profile.certificatePaymentDate": new Date() }
+    });
+
+    console.log(`[Payment] Processed successful payment for Ambassador: ${ambassadorId}`);
+  }
+
+  return payment;
+};
 
 export const getPaymentConfig = async (req: Request, res: Response) => {
   const clientIp = requestIp.getClientIp(req) || "127.0.0.1";
@@ -118,19 +161,7 @@ export const paystackWebhook = async (req: Request, res: Response) => {
     if (event.event === "charge.success") {
       const { reference, metadata } = event.data;
       const ambassadorId = metadata.ambassadorId;
-
-      const payment = await Payment.findOne({ reference });
-      if (payment && payment.status !== "SUCCESS") {
-        payment.status = "SUCCESS";
-        await payment.save();
-
-        // Update Ambassador to mark certificate as paid
-        await Ambassador.findByIdAndUpdate(ambassadorId, {
-          $set: { "profile.hasPaidCertificate": true, "profile.certificatePaymentDate": new Date() }
-        });
-
-        console.log(`Payment successful for Ambassador: ${ambassadorId}`);
-      }
+      await processSuccessfulPayment(reference, ambassadorId);
     }
 
     res.sendStatus(200);
@@ -178,15 +209,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
     console.log(`[Payment] Paystack verification status: ${paystackData?.status}`);
 
     if (paystackData?.status === "success") {
-      // Update payment status
-      payment.status = "SUCCESS";
-      await payment.save();
-
-      // Update Ambassador to mark certificate as paid
-      await Ambassador.findByIdAndUpdate(payment.ambassadorId, {
-        $set: { "profile.hasPaidCertificate": true, "profile.certificatePaymentDate": new Date() }
-      });
-
+      await processSuccessfulPayment(reference, payment.ambassadorId.toString());
       console.log(`[Payment] Verified and updated payment for Ambassador: ${payment.ambassadorId}`);
       return res.json({ status: "SUCCESS", message: "Payment verified successfully" });
     } else if (paystackData?.status === "failed") {
@@ -226,5 +249,17 @@ export const getPaymentRecords = async (req: Request, res: Response) => {
     res.json(payments);
   } catch (error) {
     res.status(500).json({ message: "Error fetching payment records", error });
+  }
+};
+
+export const getMyPaymentRecords = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    const payments = await Payment.find({ ambassadorId: req.user.id })
+      .sort({ createdAt: -1 });
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching your payment records", error });
   }
 };

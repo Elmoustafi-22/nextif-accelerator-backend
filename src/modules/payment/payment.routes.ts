@@ -4,7 +4,8 @@ import {
   initializePayment, 
   paystackWebhook,
   verifyPayment,
-  getPaymentRecords
+  getPaymentRecords,
+  getMyPaymentRecords
 } from "./payment.controller";
 import { protect } from "../../middlewares/auth.middleware";
 
@@ -15,6 +16,9 @@ router.get("/config", protect, getPaymentConfig);
 
 // Initialize payment (Requires authentication)
 router.post("/initialize", protect, initializePayment);
+
+// Get my payments (Requires authentication)
+router.get("/my", protect, getMyPaymentRecords);
 
 // Verify payment after Paystack redirect (Requires authentication)
 router.get("/verify/:reference", protect, verifyPayment);
