@@ -150,7 +150,7 @@ export const initializePayment = async (req: Request, res: Response) => {
     const reference = `CERT-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
     
     // Use callback URL from env if available, else fallback to frontend reports page
-    const callback_url = env.PAYSTACK_CALLBACK_URL || `${env.FRONTEND_URL}/reports?payment=success`;
+    const callback_url = env.PAYSTACK_CALLBACK_URL || `${env.FRONTEND_URL}/payments?payment=success`;
 
     console.log(`[Payment] Calling Paystack API with reference: ${reference}`);
 
