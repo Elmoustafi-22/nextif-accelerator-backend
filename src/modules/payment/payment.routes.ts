@@ -5,7 +5,8 @@ import {
   paystackWebhook,
   verifyPayment,
   getPaymentRecords,
-  getMyPaymentRecords
+  getMyPaymentRecords,
+  regenerateReceipt
 } from "./payment.controller";
 import { protect } from "../../middlewares/auth.middleware";
 
@@ -25,6 +26,9 @@ router.get("/verify/:reference", protect, verifyPayment);
 
 // Payment records (Super Admin only, verified internally in controller)
 router.get("/records", protect, getPaymentRecords);
+
+// Regenerate receipt for an existing successful payment (Super Admin only)
+router.post("/regenerate-receipt/:reference", protect, regenerateReceipt);
 
 // Webhook (MUST be public as Paystack calls it)
 router.post("/webhook", paystackWebhook);

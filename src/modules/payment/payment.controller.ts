@@ -263,3 +263,45 @@ export const getMyPaymentRecords = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error fetching your payment records", error });
   }
 };
+
+/**
+ * Super-admin utility: Regenerate and re-upload the receipt PDF for an
+ * existing successful payment. Useful when a previous receipt was uploaded
+ * with the wrong Cloudinary resource_type (raw → auto fix).
+ */
+export const regenerateReceipt = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    // Super-admin guard
+    const Admin = require("../admin/admin.model").default;
+    const admin = await Admin.findById(req.user.id);
+    if (!admin) return res.status(403).json({ message: "Forbidden: Admin profile not found" });
+    const titleLower = (admin.title || "").toLowerCase().trim();
+    const isSuper = titleLower === "tech lead" || titleLower === "ceo" || titleLower === "chief executive officer";
+    if (!isSuper) return res.status(403).json({ message: "Forbidden: Super Admin privileges required" });
+
+    const reference = req.params.reference as string;
+    if (!reference) return res.status(400).json({ message: "Reference is required" });
+
+    const payment = await Payment.findOne({ reference });
+    if (!payment) return res.status(404).json({ message: "Payment not found" });
+    if (payment.status !== "SUCCESS") return res.status(400).json({ message: "Payment is not successful — cannot generate receipt" });
+
+    const ambassador = await Ambassador.findById(payment.ambassadorId);
+    if (!ambassador) return res.status(404).json({ message: "Ambassador not found" });
+
+    console.log(`[Receipt] Regenerating receipt for reference: ${reference}`);
+    const pdfBuffer = await generateReceiptPDF(payment, ambassador as any);
+    const receiptUrl = await uploadReceiptToCloudinary(pdfBuffer, reference);
+
+    payment.receiptUrl = receiptUrl;
+    await payment.save();
+
+    console.log(`[Receipt] Receipt regenerated: ${receiptUrl}`);
+    res.json({ message: "Receipt regenerated successfully", receiptUrl });
+  } catch (error) {
+    console.error("[Receipt] Regeneration error:", error);
+    res.status(500).json({ message: "Error regenerating receipt", error });
+  }
+};

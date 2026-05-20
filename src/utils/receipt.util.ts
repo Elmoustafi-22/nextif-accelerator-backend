@@ -149,7 +149,7 @@ export const uploadReceiptToCloudinary = (
       {
         folder: "nextif_receipts",
         public_id: `receipt_${reference}`,
-        resource_type: "raw",
+        resource_type: "auto",
         format: "pdf",
       },
       (error, result) => {
