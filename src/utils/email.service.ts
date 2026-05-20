@@ -768,6 +768,66 @@ export class EmailService {
     });
   }
 
+  private static formatMessageBody(body: string): string {
+    if (!body) return "";
+
+    // 1. Escape HTML tags to prevent custom injected HTML/XSS issues in emails
+    let formatted = body
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // 2. Bold: **text**
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    // 3. Italics: *text* or _text_
+    formatted = formatted.replace(/\*(.*?)\*/g, "<em>$1</em>");
+    formatted = formatted.replace(/_(.*?)_/g, "<em>$1</em>");
+
+    // 4. Inline code: `code`
+    formatted = formatted.replace(/`(.*?)`/g, "<code style='background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #e11d48;'>$1</code>");
+
+    // 5. Standalone URL Autolinking:
+    // Any URL starting with http/https that is not inside href attribute or markdown brackets
+    formatted = formatted.replace(/(?<!href=["'])(https?:\/\/[^\s<()]+)/g, "<a href='$1' style='color: #3b82f6; text-decoration: underline;' target='_blank'>$1</a>");
+
+    // 6. Markdown links: [text](url) (replace AFTER auto-link so we don't double wrap)
+    formatted = formatted.replace(/\[(.*?)\]\((.*?)\)/g, "<a href='$2' style='color: #3b82f6; text-decoration: underline;' target='_blank'>$1</a>");
+
+    // 7. Handle lists (lines starting with - or * or numbers)
+    const lines = formatted.split("\n");
+    let inList = false;
+    const processedLines = lines.map(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+        const itemContent = trimmed.substring(2);
+        let prefix = "";
+        if (!inList) {
+          inList = true;
+          prefix = "<ul style='margin: 8px 0; padding-left: 20px; color: #475569;'>";
+        }
+        return `${prefix}<li style='margin-bottom: 4px;'>${itemContent}</li>`;
+      } else {
+        let suffix = "";
+        if (inList) {
+          inList = false;
+          suffix = "</ul>";
+        }
+        return suffix + line;
+      }
+    });
+    if (inList) {
+      processedLines.push("</ul>");
+    }
+
+    formatted = processedLines.join("\n");
+
+    // 8. Convert remaining newlines to <br />
+    formatted = formatted.replace(/\n/g, "<br />");
+
+    return formatted;
+  }
+
   static async sendBroadcastEmail(
     to: string,
     firstName: string,
@@ -785,7 +845,7 @@ export class EmailService {
           <p style="font-size: 16px; color: #475569; margin: 0 0 20px;">Assalamu Alaikum, <strong>${firstName}</strong>,</p>
           <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
             <h2 style="font-size: 18px; color: #1e293b; margin: 0 0 12px; font-weight: 700;">${title}</h2>
-            <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">${body}</p>
+            <div style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">${this.formatMessageBody(body)}</div>
           </div>
           ${
             link
@@ -849,5 +909,152 @@ export class EmailService {
       subject: `[NextIF] ${otp} is your verification code`,
       html,
     });
+  }
+
+  /**
+   * Send Certificate Payment Success Email to Fellow
+   */
+  static async sendPaymentSuccessFellowEmail(
+    to: string,
+    firstName: string,
+    amount: string,
+    currency: string
+  ) {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 20px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 800;">Payment Successful!</h1>
+          <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">Your NextIF Program Certificate is secured.</p>
+        </div>
+
+        <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+          <h2 style="color: #059669; margin-top: 0;">Congratulations, ${firstName}!</h2>
+          
+          <p style="font-size: 16px;">We have successfully received your payment of <strong>${currency ? currency + " " : ""}${amount}</strong> for the NextIF Global Career Mentorship & Accelerator Program Certificate.</p>
+
+          <div style="background: #ecfdf5; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #d1fae5;">
+            <p style="margin: 0; font-weight: 800; text-transform: uppercase; font-size: 12px; color: #065f46; letter-spacing: 1px;">What Happens Next?</p>
+            <p style="margin: 10px 0 0 0; color: #065f46; font-size: 14px;">Your payment has been logged, and your dashboard is updated. Our team will generate and upload your official certificate shortly. You will be able to download it directly from your portal once available.</p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 35px;">
+            <a href="${env.FRONTEND_URL}/certificate" style="background-color: #10b981; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Certificate Status</a>
+          </div>
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+          <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+        </div>
+      </div>
+    `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `Payment Confirmation: NextIF Program Certificate`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send payment success email to fellow:", error);
+    }
+  }
+
+  /**
+   * Send Certificate Payment Success Email to Admin
+   */
+  static async sendPaymentSuccessAdminEmail(
+    to: string,
+    adminName: string,
+    fellowName: string,
+    fellowEmail: string,
+    amount: string,
+    currency: string,
+    paymentMethod: "PAYSTACK" | "MANUAL"
+  ) {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px 20px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800;">New Certificate Payment</h1>
+          <p style="margin-top: 10px; opacity: 0.9; font-size: 14px;">Action Required: Generate Certificate</p>
+        </div>
+
+        <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+          <h2 style="color: #4f46e5; margin-top: 0;">Hello ${adminName},</h2>
+          
+          <p style="font-size: 16px;">A new payment has been successfully recorded for a program certificate.</p>
+
+          <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <ul style="list-style: none; padding: 0; margin: 0; color: #334155;">
+              <li style="margin-bottom: 8px;"><strong>Fellow Name:</strong> ${fellowName}</li>
+              <li style="margin-bottom: 8px;"><strong>Fellow Email:</strong> ${fellowEmail}</li>
+              <li style="margin-bottom: 8px;"><strong>Amount Paid:</strong> ${currency ? currency + " " : ""}${amount}</li>
+              <li style="margin-bottom: 8px;"><strong>Method:</strong> ${paymentMethod}</li>
+            </ul>
+          </div>
+
+          <div style="background: #fef2f2; padding: 20px; border-radius: 12px; margin: 25px 0; border: 1px solid #fee2e2;">
+            <p style="margin: 0; font-weight: bold; color: #991b1b; font-size: 14px;">Required Action</p>
+            <p style="margin: 5px 0 0 0; color: #7f1d1d; font-size: 14px;">Please generate the official certificate for this fellow and upload it via the Admin Panel under the Fellows section.</p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${env.ADMIN_FRONTEND_URL}/fellows" style="background-color: #4f46e5; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Go to Admin Panel</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `[Admin Alert] Certificate Payment Received - ${fellowName}`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send payment success email to admin:", error);
+    }
+  }
+
+  /**
+   * Send Certificate Ready Email to Fellow
+   */
+  static async sendCertificateReadyEmail(
+    to: string,
+    firstName: string,
+    certificateUrl: string
+  ) {
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 20px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 800;">Certificate Ready!</h1>
+          <p style="margin-top: 10px; opacity: 0.9; font-size: 16px;">Congratulations! Your program certificate has been issued.</p>
+        </div>
+
+        <div style="padding: 30px; line-height: 1.6; color: #1e293b;">
+          <h2 style="color: #059669; margin-top: 0;">Congratulations, ${firstName}!</h2>
+          
+          <p style="font-size: 16px;">Your official certificate for the NextIF Global Career Mentorship & Accelerator Program is now available for download and sharing.</p>
+
+          <div style="background: #ecfdf5; padding: 25px; border-radius: 12px; margin: 25px 0; border: 1px solid #d1fae5; text-align: center;">
+            <p style="margin: 0 0 15px 0; color: #065f46; font-size: 14px; font-weight: bold;">You can now view, download, and share your credential directly from your dashboard.</p>
+            <a href="${env.FRONTEND_URL}/certificate" style="background-color: #10b981; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">View Certificate</a>
+          </div>
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+          <p style="margin: 0;">NextIF Global Mentorship & Accelerator Program</p>
+        </div>
+      </div>
+    `;
+
+    try {
+      await this.sendViaApi({
+        to,
+        subject: `Your NextIF Program Certificate is Ready!`,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send certificate ready email to fellow:", error);
+    }
   }
 }

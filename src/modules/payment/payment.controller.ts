@@ -7,6 +7,9 @@ import Ambassador from "../ambassador/ambassador.model";
 import crypto from "crypto";
 import { env } from "../../config/env";
 import { generateReceiptPDF, uploadReceiptToCloudinary } from "../../utils/receipt.util";
+import Admin from "../admin/admin.model";
+import { EmailService } from "../../utils/email.service";
+import { NotificationService } from "../notification/notification.service";
 
 /**
  * Shared logic to process a successful payment:
@@ -43,6 +46,68 @@ export const processSuccessfulPayment = async (reference: string, ambassadorId: 
     await Ambassador.findByIdAndUpdate(ambassadorId, {
       $set: { "profile.hasPaidCertificate": true, "profile.certificatePaymentDate": new Date() }
     });
+
+    try {
+      const ambassador = await Ambassador.findById(ambassadorId);
+      if (ambassador) {
+        const formattedAmount = payment.metadata?.displayPrice || `${payment.currency} ${(payment.amount / 100).toLocaleString()}`;
+
+        // Mentee In-App Notification
+        await NotificationService.send(
+          ambassadorId,
+          "AMBASSADOR",
+          "MESSAGE",
+          "Payment Successful!",
+          `Your payment of ${formattedAmount} for the program certificate has been verified.`,
+          "/certificate",
+          payment._id.toString()
+        );
+
+        // Mentee Email
+        await EmailService.sendPaymentSuccessFellowEmail(
+          ambassador.email,
+          ambassador.firstName || "Fellow",
+          formattedAmount,
+          ""
+        );
+
+        // Notify Superadmins
+        const superAdmins = await Admin.find({ 
+          title: { $regex: /^(tech lead|ceo|chief executive officer)$/i },
+          accountStatus: "ACTIVE"
+        });
+
+        if (superAdmins.length > 0) {
+          const adminIds = superAdmins.map(admin => admin._id.toString());
+          
+          // Superadmin In-App Notification
+          await NotificationService.broadcast(
+            adminIds,
+            "ADMIN",
+            "MESSAGE",
+            "New Certificate Payment",
+            `${ambassador.firstName} ${ambassador.lastName} has paid ${formattedAmount} for their certificate.`,
+            "/fellows",
+            payment._id.toString()
+          );
+
+          // Superadmin Emails
+          for (const admin of superAdmins) {
+            await EmailService.sendPaymentSuccessAdminEmail(
+              admin.email,
+              admin.firstName || "Admin",
+              `${ambassador.firstName} ${ambassador.lastName}`,
+              ambassador.email,
+              formattedAmount,
+              "",
+              payment.paymentType as any || "MANUAL"
+            );
+          }
+        }
+      }
+    } catch (notifError) {
+      console.error("[Payment] Error sending payment notifications:", notifError);
+    }
 
     console.log(`[Payment] Processed successful payment for Ambassador: ${ambassadorId}`);
   }

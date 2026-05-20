@@ -29,7 +29,7 @@ export const getPriceByIP = (ip: string): PriceConfig => {
     return {
       currency: "NGN", // Charged in NGN to avoid Paystack integration issues
       amount: ngnAmount * 100, // 45,000 Naira in Kobo
-      displayPrice: `$30 (₦${ngnAmount.toLocaleString()})`, // Display the conversion to the user
+      displayPrice: "$30", // Display just $30 to the user
     };
   }
 };

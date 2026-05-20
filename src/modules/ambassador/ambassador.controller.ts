@@ -135,7 +135,7 @@ export const getAmbassadorStats = async (req: Request, res: Response) => {
 
     const attendanceRecords = await Attendance.find({
       ambassador: req.user.id,
-      status: "PRESENT",
+      status: { $in: ["PRESENT", "EXCUSED"] },
     });
     const attendancePoints = attendanceRecords.reduce((sum, record) => sum + (record.marks || 0), 0);
 
@@ -176,7 +176,7 @@ export const getAmbassadorStats = async (req: Request, res: Response) => {
     ]);
 
     const attendancePointsAgg = await Attendance.aggregate([
-      { $match: { status: "PRESENT" } },
+      { $match: { status: { $in: ["PRESENT", "EXCUSED"] } } },
       {
         $group: {
           _id: "$ambassador",

@@ -275,7 +275,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     ]);
 
     const attendancePointsAgg = await Attendance.aggregate([
-      { $match: { status: "PRESENT" } },
+      { $match: { status: { $in: ["PRESENT", "EXCUSED"] } } },
       {
         $group: {
           _id: "$ambassador",
@@ -929,6 +929,29 @@ export const uploadAmbassadorCertificate = async (req: Request, res: Response) =
 
     ambassador.profile.certificateUrl = req.file.path || (req.file as any).secure_url;
     await ambassador.save();
+
+    // Trigger Notifications for the Mentee/Ambassador
+    try {
+      // In-App Notification
+      await NotificationService.send(
+        ambassador._id.toString(),
+        "AMBASSADOR",
+        "MESSAGE",
+        "Certificate Ready!",
+        "Your program certificate has been generated and uploaded. You can now view, share, or download it.",
+        "/certificate",
+        ambassador._id.toString()
+      );
+
+      // Email Notification
+      await EmailService.sendCertificateReadyEmail(
+        ambassador.email,
+        ambassador.firstName || "Fellow",
+        ambassador.profile.certificateUrl || ""
+      );
+    } catch (notifErr) {
+      console.error("[Certificate] Error triggering certificate notifications:", notifErr);
+    }
 
     res.json({
       message: "Certificate uploaded successfully",
