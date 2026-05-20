@@ -305,3 +305,67 @@ export const regenerateReceipt = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error regenerating receipt", error });
   }
 };
+
+/**
+ * Super-admin utility: Manually record a payment (e.g. Bank Transfer, Cash).
+ * This creates a successful payment record and generates a standard receipt.
+ */
+export const recordManualPayment = async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    // Super-admin guard
+    const Admin = require("../admin/admin.model").default;
+    const admin = await Admin.findById(req.user.id);
+    if (!admin) return res.status(403).json({ message: "Forbidden: Admin profile not found" });
+    const titleLower = (admin.title || "").toLowerCase().trim();
+    const isSuper = titleLower === "tech lead" || titleLower === "ceo" || titleLower === "chief executive officer";
+    if (!isSuper) return res.status(403).json({ message: "Forbidden: Super Admin privileges required" });
+
+    const { ambassadorId, amount, paymentMethod } = req.body;
+    if (!ambassadorId || !amount || !paymentMethod) {
+      return res.status(400).json({ message: "ambassadorId, amount, and paymentMethod are required" });
+    }
+
+    const ambassador = await Ambassador.findById(ambassadorId);
+    if (!ambassador) return res.status(404).json({ message: "Ambassador not found" });
+
+    // Amount is received in NGN standard format (e.g., 45000)
+    // Convert to Kobo/Cents equivalent for DB storage
+    const amountInKobo = Math.round(Number(amount) * 100);
+    const reference = `MANUAL-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+
+    const payment = new Payment({
+      ambassadorId,
+      reference,
+      amount: amountInKobo,
+      currency: "NGN", // Defaulting to NGN for manual payments for now
+      status: "SUCCESS",
+      paymentType: "CERTIFICATE",
+      metadata: { paymentMethod }
+    });
+    
+    await payment.save();
+
+    console.log(`[Payment] Manual payment recorded: ${reference} for ${ambassadorId}`);
+
+    // Generate Receipt and upload to Cloudinary
+    const pdfBuffer = await generateReceiptPDF(payment, ambassador as any);
+    const receiptUrl = await uploadReceiptToCloudinary(pdfBuffer, reference);
+
+    if (receiptUrl) {
+      payment.receiptUrl = receiptUrl;
+      await payment.save();
+    }
+
+    // Update Ambassador to mark certificate as paid
+    await Ambassador.findByIdAndUpdate(ambassadorId, {
+      $set: { "profile.hasPaidCertificate": true, "profile.certificatePaymentDate": new Date() }
+    });
+
+    res.status(201).json({ message: "Manual payment recorded successfully", payment });
+  } catch (error) {
+    console.error("[Payment] Manual recording error:", error);
+    res.status(500).json({ message: "Error recording manual payment", error });
+  }
+};

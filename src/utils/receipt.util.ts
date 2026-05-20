@@ -69,7 +69,7 @@ export const generateReceiptPDF = (
 
       doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("ISSUED BY:", 350, 140);
       doc.fillColor(secondaryColor).fontSize(11).font("Helvetica-Bold").text("NextIF Accelerator", 350, 155);
-      doc.fillColor(textMuted).fontSize(10).font("Helvetica").text("accelerator@nextif.com", 350, 170);
+      doc.fillColor(textMuted).fontSize(10).font("Helvetica").text("connect@nextif.org", 350, 170);
 
       // --- TRANSACTION DETAILS TABLE ---
       const tableTop = 220;
@@ -89,8 +89,9 @@ export const generateReceiptPDF = (
       doc.fillColor(secondaryColor).fontSize(10).font("Helvetica");
       
       const description = payment.paymentType === "CERTIFICATE" ? "Program Certificate Fee" : "Accelerator Payment";
+      const paymentMethodStr = payment.metadata?.paymentMethod || "Paystack";
       doc.text(description, 60, itemY);
-      doc.text("Paystack", 250, itemY);
+      doc.text(paymentMethodStr, 250, itemY);
 
       // Status Badge (Success)
       doc.fillColor(greenColor).font("Helvetica-Bold").text("SUCCESSFUL", 370, itemY);
@@ -108,10 +109,10 @@ export const generateReceiptPDF = (
 
       // --- TOTAL SECTION ---
       const totalTop = itemY + 35;
-      doc.fillColor(textMuted).fontSize(10).font("Helvetica").text("Subtotal:", 350, totalTop, { align: "right" });
+      doc.fillColor(textMuted).fontSize(10).font("Helvetica").text("Subtotal:", 380, totalTop);
       doc.fillColor(secondaryColor).font("Helvetica-Bold").text(formattedAmount, 480, totalTop);
 
-      doc.fillColor(textMuted).font("Helvetica").text("Total Paid:", 350, totalTop + 20, { align: "right" });
+      doc.fillColor(textMuted).font("Helvetica").text("Total Paid:", 380, totalTop + 20);
       doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text(formattedAmount, 480, totalTop + 20);
 
       // --- FOOTER / NOTICE ---
@@ -151,6 +152,7 @@ export const uploadReceiptToCloudinary = (
         public_id: `receipt_${reference}`,
         resource_type: "auto",
         format: "pdf",
+        access_mode: "public",
       },
       (error, result) => {
         if (error) {
