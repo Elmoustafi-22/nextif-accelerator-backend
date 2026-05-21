@@ -8,6 +8,7 @@ import complaintRouter from "./modules/complaint/complaint.routes";
 import eventRouter from "./modules/event/event.routes";
 import recordingRouter from "./modules/recording/recording.routes";
 import paymentRouter from "./modules/payment/payment.routes";
+import capstoneRouter from "./modules/capstone/capstone.routes";
 
 const router = Router();
 
@@ -29,5 +30,7 @@ router.use("/events", eventRouter);
 router.use("/recordings", recordingRouter);
 // Mount Payment Routes
 router.use("/payments", paymentRouter);
+// Mount Capstone Routes
+router.use("/capstone", capstoneRouter);
 
 export default router;
